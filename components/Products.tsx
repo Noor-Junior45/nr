@@ -398,8 +398,12 @@ const Products: React.FC = () => {
                     aria-live="polite"
                 >
                     {displayedProducts.length > 0 ? (
-                        displayedProducts.map((product) => (
-                            <div key={product.id} className={`reveal ${product.delay || ''} glass-card rounded-2xl shadow-sm hover:shadow-xl hover-lift-smooth overflow-hidden flex flex-col h-full group animate-slide-up bg-white`}>
+                        displayedProducts.map((product, index) => (
+                            <div 
+                                key={product.id} 
+                                className="reveal glass-card rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden flex flex-col h-full group bg-white transform hover:-translate-y-2 hover:scale-[1.02]"
+                                style={{ transitionDelay: `${(index % 5) * 100}ms` }}
+                            >
                                 <div 
                                     className="overflow-hidden h-56 p-6 relative cursor-pointer bg-gradient-to-br from-white to-gray-50 group-hover:from-blue-50 group-hover:to-white transition-colors duration-300 flex items-center justify-center border-b border-gray-100"
                                     onClick={() => openQuickView(product)}
