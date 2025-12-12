@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { getGeminiResponse, translateText } from '../services/geminiService';
 import { ChatMessage } from '../types';
 
+// Moved outside component to prevent recreation and scope issues
+const WELCOME_MSG = "Hello! 👋 I'm your AI Pharmacist assistant. \n\nAsk me about: \n💊 Medicine uses \n🤒 Common symptoms \n🌿 Home remedies \n📷 Upload a photo of a medicine or prescription for help! \n\nNote: I am an AI, not a doctor. Please consult a professional for serious advice.";
+
 const AIChat: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
-    
-    // Original Welcome Message
-    const WELCOME_MSG = "Hello! 👋 I'm your AI Pharmacist assistant. \n\nAsk me about: \n💊 Medicine uses \n🤒 Common symptoms \n🌿 Home remedies \n📷 Upload a photo of a medicine or prescription for help! \n\nNote: I am an AI, not a doctor. Please consult a professional for serious advice.";
+    const [isConfirmingClear, setIsConfirmingClear] = useState(false);
 
     // Lazy initialization for persistence
     const [messages, setMessages] = useState<ChatMessage[]>(() => {
@@ -65,16 +66,24 @@ const AIChat: React.FC = () => {
 
     const toggleChat = () => setIsOpen(!isOpen);
 
-    const clearHistory = () => {
-        if (window.confirm("Are you sure you want to clear your chat history?")) {
-            const defaultMessage = {
+    const handleClearHistory = () => {
+        if (isConfirmingClear) {
+            // User confirmed, perform clear
+            const defaultMessage: ChatMessage = {
                 id: 'welcome',
                 text: WELCOME_MSG,
                 isUser: false,
                 timestamp: Date.now()
             };
             setMessages([defaultMessage]);
-            localStorage.removeItem('chat_history');
+            // We rely on useEffect to update localStorage, but explicit removal is safe too
+            // localStorage.removeItem('chat_history'); 
+            setIsConfirmingClear(false);
+        } else {
+            // First click - ask for confirmation
+            setIsConfirmingClear(true);
+            // Auto-reset confirmation state after 3 seconds
+            setTimeout(() => setIsConfirmingClear(false), 3000);
         }
     };
 
@@ -246,11 +255,11 @@ const AIChat: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-2">
                                 <button 
-                                    onClick={clearHistory}
-                                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
-                                    title="Clear Chat"
+                                    onClick={handleClearHistory}
+                                    className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition-all duration-300 ${isConfirmingClear ? 'bg-red-500 hover:bg-red-600 animate-pulse' : 'bg-white/10 hover:bg-white/20'}`}
+                                    title={isConfirmingClear ? "Confirm Clear?" : "Clear Chat"}
                                 >
-                                    <i className="fas fa-trash-alt text-sm"></i>
+                                    <i className={`fas ${isConfirmingClear ? 'fa-check' : 'fa-trash-alt'} text-sm`}></i>
                                 </button>
                                 <button 
                                     onClick={toggleChat} 

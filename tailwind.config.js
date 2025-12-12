@@ -33,6 +33,7 @@ export default {
         'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
         'scale-up': 'scaleUp 0.5s ease-out forwards',
         'typing': 'typing 1.4s infinite ease-in-out both',
+        'bounce-subtle': 'bounce-subtle 3s infinite',
       },
       keyframes: {
         float: {
@@ -84,6 +85,10 @@ export default {
         typing: {
           '0%, 80%, 100%': { transform: 'scale(0)' },
           '40%': { transform: 'scale(1)' }
+        },
+        'bounce-subtle': {
+          '0%, 100%': { transform: 'translateY(-5%)' },
+          '50%': { transform: 'translateY(5%)' },
         }
       }
     }

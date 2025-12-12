@@ -1,20 +1,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Product } from "../types";
 
-// Initialize safely - if API key is missing, it will throw only when called, not on app load
+// Initialize safely - relies on Vite's define plugin to replace process.env.API_KEY at build time
 const getAIClient = () => {
-    let apiKey = '';
-    try {
-        // Safe access to process.env for browser environments
-        if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-            apiKey = process.env.API_KEY;
-        }
-    } catch (e) {
-        console.warn("Could not access process.env");
-    }
+    // In Vite production builds, process.env.API_KEY is replaced by the actual string.
+    // We access it directly to ensure the bundler handles it correctly.
+    const apiKey = process.env.API_KEY;
 
     if (!apiKey) {
-        console.warn("API Key is missing.");
+        console.warn("API Key is missing. Please set API_KEY in your environment variables.");
         return null;
     }
     return new GoogleGenAI({ apiKey });
