@@ -10,6 +10,7 @@ import Contact from './components/Contact';
 import Footer from './components/Footer';
 import WelcomeModal from './components/WelcomeModal';
 import AIChat from './components/AIChat';
+import BackToTop from './components/BackToTop';
 
 const App: React.FC = () => {
   useEffect(() => {
@@ -77,6 +78,7 @@ const App: React.FC = () => {
       </main>
       <Footer />
       <WelcomeModal />
+      <BackToTop />
       <AIChat />
     </>
   );
