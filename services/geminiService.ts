@@ -126,9 +126,9 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
             2. NO GENERIC NAMES: Do NOT use chemical names like "Paracetamol", "Ibuprofen", "Amoxycillin" as the main name.
             3. NO DESCRIPTIONS IN NAME: Do not write "Paracetamol Tablet". Write "Dolo 650".
             4. REAL PRODUCTS ONLY: Use actual products found in Indian medical stores.
-            5. SHOW Result according to User Query.
+            5.  SHOW Result according to User Query.
             6. Match first result with user queries.
-            
+
             Example:
             - Query: "Fever" -> Name: "Dolo 650", "Crocin Advance", "Calpol 500".
             - Query: "Gas" -> Name: "Eno", "Digene", "Pan 40".
