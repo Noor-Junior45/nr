@@ -4,7 +4,6 @@ import { Product } from "../types";
 // Initialize safely - relies on Vite's define plugin to replace process.env.API_KEY at build time
 const getAIClient = () => {
     // In Vite production builds, process.env.API_KEY is replaced by the actual string.
-    // We access it directly to ensure the bundler handles it correctly.
     const apiKey = process.env.API_KEY;
 
     if (!apiKey) {
@@ -53,7 +52,6 @@ Note: You are an AI assistant, not a doctor. Prioritize user safety and well-bei
 // Helper to clean markdown bold syntax (**) from responses
 const cleanText = (text: string): string => {
     if (!text) return "";
-    // Remove ** markers but keep the text inside them
     return text.replace(/\*\*/g, '').trim();
 };
 
@@ -117,9 +115,25 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
         const ai = getAIClient();
         if (!ai) return [];
 
+        // Request a structured JSON response to ensure all fields are present
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Generate a list of 4 popular pharmaceutical products available in India related to '${query}'.`,
+            contents: `You are an expert pharmacist in India. User Query: "${query}".
+            Generate a list of 4 DISTINCT, POPULAR BRAND NAME medicines available in India that match the query.
+            
+            STRICT RULES FOR "NAME" FIELD:
+            1. MUST BE A BRAND NAME: Return commercially sold names like "Dolo 650", "Saridon", "Ascoril", "Shelcal", "Digene".
+            2. NO GENERIC NAMES: Do NOT use chemical names like "Paracetamol", "Ibuprofen", "Amoxycillin" as the main name.
+            3. NO DESCRIPTIONS IN NAME: Do not write "Paracetamol Tablet". Write "Dolo 650".
+            4. REAL PRODUCTS ONLY: Use actual products found in Indian medical stores.
+            5. Show First Result according to query.
+
+            Example:
+            - Query: "Fever" -> Name: "Dolo 650", "Crocin Advance", "Calpol 500".
+            - Query: "Gas" -> Name: "Eno", "Digene", "Pan 40".
+            - Query: "Cough" -> Name: "Benadryl", "Ascoril LS", "Grilinctus".
+            
+            Provide: Category (e.g., Pain Relief), Usage (short instruction), Side Effects, Precautions, and Prescription Status.`,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -127,30 +141,48 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
                     items: {
                         type: Type.OBJECT,
                         properties: {
-                            id: { type: Type.INTEGER },
                             name: { type: Type.STRING },
                             description: { type: Type.STRING },
-                            imageKeyword: { type: Type.STRING, description: "A single keyword to search for an image, e.g., 'pill', 'syrup', 'bottle'" }
+                            category: { type: Type.STRING },
+                            usage: { type: Type.STRING },
+                            sideEffects: { type: Type.STRING },
+                            precautions: { 
+                                type: Type.ARRAY,
+                                items: { type: Type.STRING }
+                            },
+                            isPrescriptionRequired: { type: Type.BOOLEAN }
                         },
-                        required: ["id", "name", "description", "imageKeyword"]
+                        required: ["name", "description", "category", "usage", "sideEffects", "precautions", "isPrescriptionRequired"]
                     }
                 }
             }
         });
 
-        const rawData = response.text;
+        let rawData = response.text;
         if (!rawData) return [];
+
+        // Clean markdown fences if the model includes them despite JSON mode
+        if (rawData.startsWith('```json')) {
+            rawData = rawData.replace(/^```json\s+/, '').replace(/\s+```$/, '');
+        } else if (rawData.startsWith('```')) {
+            rawData = rawData.replace(/^```\s+/, '').replace(/\s+```$/, '');
+        }
 
         const parsedData = JSON.parse(rawData);
         
-        // Transform the AI response to match our Product type, adding placeholder images
+        // Transform the AI response to match our Product type
         return parsedData.map((item: any, index: number) => ({
             id: Date.now() + index, // Unique ID
             name: item.name,
             description: item.description,
-            // Use a reliable placeholder service with the name or keyword
-            image: `https://placehold.co/600x400/e2e8f0/1e293b?text=${encodeURIComponent(item.name)}`,
-            delay: `reveal-delay-${(index * 100) % 400}`
+            // Use Pollinations AI to generate a relevant image based on the product name
+            image: `https://image.pollinations.ai/prompt/medicine%20${encodeURIComponent(item.name)}%20product%20packaging%20white%20background?width=400&height=400&nologo=true`,
+            delay: `reveal-delay-${(index * 100) % 400}`,
+            category: item.category,
+            usage: item.usage,
+            sideEffects: item.sideEffects,
+            precautions: item.precautions,
+            isPrescriptionRequired: item.isPrescriptionRequired
         }));
 
     } catch (error) {

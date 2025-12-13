@@ -183,14 +183,39 @@ const productList: Product[] = [
     },
 ];
 
+const ProductCardImage: React.FC<{ src: string; alt: string }> = ({ src, alt }) => {
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    return (
+        <div className="relative w-full h-full flex items-center justify-center bg-gray-50 overflow-hidden">
+            {/* Low-res / Loading Placeholder */}
+            <div 
+                className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${isLoaded ? 'opacity-0' : 'opacity-100'}`}
+            >
+                <div className="w-8 h-8 border-2 border-medical-200 border-t-medical-500 rounded-full animate-spin"></div>
+            </div>
+            
+            <img 
+                src={src} 
+                alt={alt} 
+                loading="lazy"
+                onLoad={() => setIsLoaded(true)}
+                className={`w-full h-full object-contain transform transition-all duration-700 ease-in-out mix-blend-multiply ${isLoaded ? 'opacity-100 scale-100 blur-0 group-hover:scale-110 group-hover:-translate-y-2' : 'opacity-0 scale-95 blur-sm'}`} 
+            />
+        </div>
+    );
+};
+
 const Products: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [displayedProducts, setDisplayedProducts] = useState<Product[]>(productList);
     const [isSearching, setIsSearching] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
     const [isAiResult, setIsAiResult] = useState(false);
-    const [isFocused, setIsFocused] = useState(false);
     const [wishlist, setWishlist] = useState<number[]>([]);
+    
+    // New state for search focus
+    const [isFocused, setIsFocused] = useState(false);
     
     // Quick View State
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -231,6 +256,12 @@ const Products: React.FC = () => {
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // CRITICAL FIX: Explicitly blur the input to close mobile keyboard and prevent 
+        // focus events from re-triggering the overlay immediately.
+        const inputElement = document.getElementById('product-search-input');
+        if (inputElement) inputElement.blur();
+        
         setIsFocused(false);
         
         if (!searchQuery.trim()) {
@@ -268,7 +299,7 @@ const Products: React.FC = () => {
         setHasSearched(false);
         setIsAiResult(false);
         setIsSearching(false);
-        document.getElementById('product-search-input')?.focus();
+        setIsFocused(false);
     };
 
     // Quick View Handlers
@@ -295,19 +326,17 @@ const Products: React.FC = () => {
     return (
         <section id="products" className="scroll-mt-24 min-h-[800px] transition-all duration-500 relative py-12" aria-label="Products Section">
             
-            {/* Search Focus Backdrop - Always visible when focused to emphasize input */}
-            {isFocused && (
-                <div 
-                    className="fixed inset-0 bg-white/30 backdrop-blur-md z-[55] transition-opacity duration-300 animate-fade-in" 
-                    onClick={() => setIsFocused(false)}
-                    aria-hidden="true"
-                ></div>
-            )}
+            {/* Search Focus Backdrop - Fixed Z-index (40) to be BELOW Navbar (50) */}
+            <div 
+                className={`fixed inset-0 bg-white/60 backdrop-blur-sm z-40 transition-all duration-500 ${isFocused ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
+                onClick={() => setIsFocused(false)}
+                aria-hidden="true"
+            ></div>
 
             <div className="container mx-auto px-4">
                 
                 {/* No Delivery Notice Banner */}
-                <div className="glass-panel border-l-4 border-l-orange-500 p-4 mb-8 rounded-r-lg shadow-sm reveal flex items-start md:items-center animate-fade-in">
+                <div className="glass-panel border-l-4 border-l-orange-500 p-4 mb-8 rounded-r-lg shadow-sm reveal flex items-start md:items-center animate-fade-in relative z-10">
                     <div className="flex-shrink-0 text-orange-500">
                         <i className="fas fa-store-slash text-2xl"></i>
                     </div>
@@ -320,7 +349,8 @@ const Products: React.FC = () => {
                     </div>
                 </div>
 
-                <div className={`transition-all duration-700 ease-in-out flex flex-col items-center ${hasSearched ? 'mt-0 mb-8' : 'mt-6 mb-16'}`}>
+                {/* Search Container */}
+                <div className={`transition-all duration-700 ease-in-out flex flex-col items-center relative z-41 ${hasSearched ? 'mt-0 mb-8' : 'mt-6 mb-16'}`}>
                     <div className="text-center mb-8 reveal">
                         <h2 className="text-3xl font-bold text-gray-900 mb-4 drop-shadow-sm">Popular Products & Medicines</h2>
                         <p className={`text-gray-700 max-w-2xl mx-auto transition-opacity duration-500 font-medium ${hasSearched ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>
@@ -329,39 +359,44 @@ const Products: React.FC = () => {
                     </div>
 
                     <div className={`
-                        w-full max-w-2xl z-20 transition-all duration-300
+                        w-full max-w-2xl transition-all duration-500 ease-out origin-top
                         ${isFocused
-                            ? 'fixed top-0 left-0 right-0 w-full px-4 py-4 glass-panel shadow-lg z-[60] md:relative md:top-auto md:left-auto md:bg-transparent md:shadow-none md:p-0 md:w-full animate-slide-down' 
-                            : 'relative'}
+                            ? 'fixed top-0 left-0 right-0 w-full p-4 md:p-0 z-[60] md:relative md:top-auto md:left-auto md:transform md:scale-110' 
+                            : 'relative hover:scale-[1.01]'}
                     `}>
-                        <form onSubmit={handleSearch} className="relative group w-full" role="search">
+                        <form onSubmit={handleSearch} className={`relative group w-full transition-all duration-300 ${isFocused ? 'shadow-2xl rounded-full' : ''}`} role="search">
                             <label htmlFor="product-search-input" className="sr-only">Search medicines, products, or symptoms</label>
-                            <div className={`absolute inset-0 bg-gradient-to-r from-medical-400 to-blue-400 rounded-full blur opacity-30 group-hover:opacity-60 transition duration-300 ${isSearching ? 'animate-pulse' : ''} ${isFocused ? 'hidden md:block' : ''}`}></div>
+                            
+                            {/* Glow Effect */}
+                            <div className={`absolute inset-0 bg-gradient-to-r from-medical-400 to-blue-400 rounded-full blur-md opacity-30 group-hover:opacity-60 transition duration-500 ${isSearching ? 'animate-pulse' : ''} ${isFocused ? 'opacity-60 blur-lg scale-105' : ''}`}></div>
+                            
                             <input 
                                 id="product-search-input"
-                                type="search" 
+                                type="text"
+                                enterKeyHint="search"
                                 value={searchQuery}
                                 onFocus={() => setIsFocused(true)}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search medicines, products, or symptoms..." 
-                                className="w-full bg-white/80 backdrop-blur-md border-2 border-white/50 text-gray-800 text-lg rounded-full py-4 pl-6 pr-24 shadow-lg focus:outline-none focus:border-medical-500 focus:shadow-xl transition-all duration-300 relative z-10 placeholder-gray-500"
+                                className={`w-full bg-white/80 backdrop-blur-md border-2 text-gray-800 text-lg rounded-full py-4 pl-6 pr-24 shadow-lg focus:outline-none transition-all duration-300 relative z-10 placeholder-gray-500 ${isFocused ? 'border-medical-500 shadow-xl bg-white' : 'border-white/50'}`}
                                 aria-label="Search medicines, products, or symptoms"
                             />
-                            
+
+                            {/* Visible Cross Button inside Search Bar */}
                             {searchQuery && (
                                 <button
                                     type="button"
                                     onClick={clearSearch}
-                                    className="absolute right-14 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-2 z-20 transition-colors"
+                                    className="absolute right-14 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white hover:bg-red-500 bg-gray-100/80 rounded-full w-8 h-8 flex items-center justify-center transition-all z-20 backdrop-blur-sm"
                                     aria-label="Clear search"
                                 >
-                                    <i className="fas fa-times"></i>
+                                    <i className="fas fa-times text-sm"></i>
                                 </button>
                             )}
-
+                            
                             <button 
                                 type="submit"
-                                className="absolute right-3 top-1/2 -translate-y-1/2 bg-medical-600 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-medical-700 transition z-20 shadow-md group-hover:scale-110"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 bg-medical-600 text-white w-11 h-11 rounded-full flex items-center justify-center hover:bg-medical-700 transition-all z-20 shadow-md group-hover:scale-105 active:scale-95"
                                 aria-label={isSearching ? "Searching..." : "Search"}
                                 disabled={isSearching}
                             >
@@ -372,6 +407,7 @@ const Products: React.FC = () => {
                                 )}
                             </button>
                         </form>
+                        
                         {isAiResult && !isSearching && (
                             <div className="text-center mt-2 text-xs text-gray-600 flex items-center justify-center gap-1 animate-slide-up font-medium" role="status">
                                 <i className="fab fa-google text-medical-600" aria-hidden="true"></i>
@@ -382,13 +418,26 @@ const Products: React.FC = () => {
                         {isFocused && (
                             <button 
                                 onClick={() => setIsFocused(false)}
-                                className="md:hidden absolute -bottom-10 left-1/2 transform -translate-x-1/2 text-gray-600 text-sm font-medium bg-white/90 px-4 py-1 rounded-full shadow-sm"
+                                className="md:hidden absolute -bottom-10 left-1/2 transform -translate-x-1/2 text-gray-600 text-sm font-medium bg-white/90 px-4 py-1 rounded-full shadow-sm animate-fade-in-up"
                                 aria-label="Close search mode"
                             >
                                 <i className="fas fa-times-circle mr-1" aria-hidden="true"></i> Close
                             </button>
                         )}
                     </div>
+                    
+                    {/* Independent Clear Button shown below search bar when results are filtered */}
+                    {/* Fixed Z-Index: removed z-50 to z-10 so it goes behind fixed navbar on scroll */}
+                    {hasSearched && (
+                        <div className="mt-6 flex justify-center animate-fade-in z-10 relative">
+                            <button 
+                                onClick={clearSearch}
+                                className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white px-6 py-2 rounded-full shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-bold text-sm transform hover:-translate-y-1"
+                            >
+                                <i className="fas fa-arrow-left"></i> Clear Search & Back to Products
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 <div 
@@ -401,19 +450,14 @@ const Products: React.FC = () => {
                         displayedProducts.map((product, index) => (
                             <div 
                                 key={product.id} 
-                                className="reveal glass-card rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden flex flex-col h-full group bg-white transform hover:-translate-y-2 hover:scale-[1.02]"
-                                style={{ transitionDelay: `${(index % 5) * 100}ms` }}
+                                className={`glass-card rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden flex flex-col h-full group bg-white transform hover:-translate-y-2 hover:scale-[1.02] animate-fade-in-up ${isAiResult ? 'border-2 border-indigo-200 ring-2 ring-indigo-50 shadow-indigo-100' : ''}`}
+                                style={{ animationDelay: `${(index % 5) * 100}ms` }}
                             >
                                 <div 
                                     className="overflow-hidden h-56 p-6 relative cursor-pointer bg-gradient-to-br from-white to-gray-50 group-hover:from-blue-50 group-hover:to-white transition-colors duration-300 flex items-center justify-center border-b border-gray-100"
                                     onClick={() => openQuickView(product)}
                                 >
-                                    <img 
-                                        src={product.image} 
-                                        alt={product.name} 
-                                        loading="lazy"
-                                        className="w-full h-full object-contain transform transition-transform duration-700 ease-in-out group-hover:scale-110 group-hover:-translate-y-2 drop-shadow-md mix-blend-multiply" 
-                                    />
+                                    <ProductCardImage src={product.image} alt={product.name} />
                                     
                                     {/* Wishlist Toggle Button (Top-Left) */}
                                     <button
@@ -435,8 +479,8 @@ const Products: React.FC = () => {
                                     {/* Badges Overlay */}
                                     <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
                                         {isAiResult && (
-                                            <span className="bg-blue-100/90 backdrop-blur-sm text-blue-800 text-[10px] font-bold px-2 py-1 rounded-full animate-scale-up border border-blue-200">
-                                                AI Found
+                                            <span className="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 animate-scale-up">
+                                                <i className="fas fa-robot"></i> AI Suggested
                                             </span>
                                         )}
                                         {product.isPrescriptionRequired && (
@@ -540,7 +584,7 @@ const Products: React.FC = () => {
                                     </span>
                                 )}
                                 {isAiResult ? (
-                                    <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5">
+                                    <span className="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5">
                                         <i className="fas fa-robot"></i> AI Suggested
                                     </span>
                                 ) : (
