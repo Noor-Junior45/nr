@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import About from './components/About';
@@ -12,8 +12,82 @@ import WelcomeModal from './components/WelcomeModal';
 import AIChat from './components/AIChat';
 import BackToTop from './components/BackToTop';
 import AdSense from './components/AdSense';
+import WishlistModal from './components/WishlistModal';
+import Toast from './components/Toast';
+import ProductDetailModal from './components/ProductDetailModal';
+import { Product } from './types';
+import { productList } from './data/products';
 
 const App: React.FC = () => {
+  const [wishlist, setWishlist] = useState<number[]>([]);
+  const [customProducts, setCustomProducts] = useState<Product[]>([]);
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [toast, setToast] = useState<{ message: string; visible: boolean } | null>(null);
+  
+  // State for product details opened via Wishlist
+  const [viewedProduct, setViewedProduct] = useState<Product | null>(null);
+
+  // Load wishlist and custom products from local storage
+  useEffect(() => {
+      try {
+          const savedWishlist = localStorage.getItem('lucky_pharma_wishlist');
+          if (savedWishlist) {
+              setWishlist(JSON.parse(savedWishlist));
+          }
+          
+          const savedCustom = localStorage.getItem('lucky_pharma_custom_products');
+          if (savedCustom) {
+              setCustomProducts(JSON.parse(savedCustom));
+          }
+      } catch (e) {
+          console.error("Failed to load local storage data", e);
+      }
+  }, []);
+
+  const toggleWishlist = (product: Product) => {
+      let message = "";
+      const productId = product.id;
+
+      setWishlist(prev => {
+          const exists = prev.includes(productId);
+          const newWishlist = exists 
+              ? prev.filter(id => id !== productId)
+              : [...prev, productId];
+          
+          localStorage.setItem('lucky_pharma_wishlist', JSON.stringify(newWishlist));
+          
+          if (!exists) {
+            message = "Added to Wishlist";
+          }
+          return newWishlist;
+      });
+
+      // If it's a dynamic/AI product (not in static list), save it to customProducts
+      const isStatic = productList.some(p => p.id === productId);
+      if (!isStatic) {
+          setCustomProducts(prev => {
+              const exists = prev.some(p => p.id === productId);
+              if (!exists) {
+                  const newCustom = [...prev, product];
+                  localStorage.setItem('lucky_pharma_custom_products', JSON.stringify(newCustom));
+                  return newCustom;
+              }
+              return prev;
+          });
+      }
+
+      if (message) {
+        showToast(message);
+      }
+  };
+
+  const showToast = (message: string) => {
+      setToast({ message, visible: true });
+      setTimeout(() => {
+          setToast(prev => prev ? { ...prev, visible: false } : null);
+      }, 3000);
+  };
+
   useEffect(() => {
     // Reveal animation logic using Intersection Observer
     const observerOptions = {
@@ -67,11 +141,14 @@ const App: React.FC = () => {
 
   return (
     <>
-      <Navbar />
+      <Navbar 
+          wishlistCount={wishlist.length} 
+          onOpenWishlist={() => setIsWishlistOpen(true)} 
+      />
       <main>
         <Hero />
         <About />
-        <Products />
+        <Products wishlist={wishlist} toggleWishlist={toggleWishlist} />
         <Services />
         <HealthTips />
         <FAQ />
@@ -87,6 +164,34 @@ const App: React.FC = () => {
       <WelcomeModal />
       <BackToTop />
       <AIChat />
+      
+      <WishlistModal 
+          isOpen={isWishlistOpen} 
+          onClose={() => setIsWishlistOpen(false)} 
+          wishlistIds={wishlist}
+          customProducts={customProducts}
+          onToggleWishlist={toggleWishlist}
+          onProductClick={(product) => setViewedProduct(product)}
+      />
+
+      {/* Detail Modal triggered from Wishlist */}
+      {viewedProduct && (
+          <ProductDetailModal 
+              product={viewedProduct}
+              onClose={() => setViewedProduct(null)}
+              isWishlisted={wishlist.includes(viewedProduct.id)}
+              onToggleWishlist={() => toggleWishlist(viewedProduct)}
+          />
+      )}
+      
+      {toast && (
+          <Toast 
+              message={toast.message} 
+              isVisible={toast.visible} 
+              onClose={() => setToast(prev => prev ? { ...prev, visible: false } : null)}
+              onViewWishlist={() => setIsWishlistOpen(true)}
+          />
+      )}
     </>
   );
 };

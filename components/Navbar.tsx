@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
-const Navbar: React.FC = () => {
+interface NavbarProps {
+    wishlistCount?: number;
+    onOpenWishlist?: () => void;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [activeLink, setActiveLink] = useState('#home');
 
@@ -66,14 +71,31 @@ const Navbar: React.FC = () => {
                         </span>
                     </a>
 
-                    {/* Mobile Menu Button - Visible ONLY on small screens (< md) */}
-                    <button 
-                        onClick={toggleMenu}
-                        className="md:hidden text-gray-700 focus:outline-none p-2 hover:bg-gray-100 rounded-xl transition shadow-sm border border-transparent hover:border-gray-200"
-                        aria-label="Toggle menu"
-                    >
-                        <i className={`fas ${isMobileMenuOpen ? 'fa-times' : 'fa-bars'} text-2xl`}></i>
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {/* Wishlist Button (Always Visible) */}
+                        <button 
+                            onClick={onOpenWishlist}
+                            className="relative w-10 h-10 rounded-full flex items-center justify-center hover:bg-red-50 transition-colors group"
+                            title="View Wishlist"
+                            aria-label="View Wishlist"
+                        >
+                            <i className="fas fa-heart text-xl text-gray-400 group-hover:text-red-500 transition-colors"></i>
+                            {wishlistCount > 0 && (
+                                <span className="absolute top-1 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm animate-scale-up">
+                                    {wishlistCount}
+                                </span>
+                            )}
+                        </button>
+
+                        {/* Mobile Menu Button - Visible ONLY on small screens (< md) */}
+                        <button 
+                            onClick={toggleMenu}
+                            className="md:hidden text-gray-700 focus:outline-none p-2 hover:bg-gray-100 rounded-xl transition shadow-sm border border-transparent hover:border-gray-200"
+                            aria-label="Toggle menu"
+                        >
+                            <i className={`fas ${isMobileMenuOpen ? 'fa-times' : 'fa-bars'} text-2xl`}></i>
+                        </button>
+                    </div>
                 </div>
 
                 {/* ROW 2: Desktop/Tablet Menu - Right Aligned */}
