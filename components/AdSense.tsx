@@ -35,11 +35,16 @@ const AdSense: React.FC<AdSenseProps> = ({
                     return;
                 }
 
-                const ads = (window as any).adsbygoogle || [];
-                ads.push({});
+                // Safely access adsbygoogle
+                const w = window as any;
+                if (!w.adsbygoogle) {
+                    w.adsbygoogle = [];
+                }
+                w.adsbygoogle.push({});
                 setIsAdLoaded(true);
             } catch (e) {
-                console.error("AdSense error:", e);
+                // Squelch errors to prevent "Script error" bubbling up from AdSense internal issues
+                console.warn("AdSense push warning:", e);
             }
         };
 
@@ -54,6 +59,8 @@ const AdSense: React.FC<AdSenseProps> = ({
                 pushAd();
             } else if (attempts > 50) { // Give up after ~5 seconds
                 clearInterval(intervalId);
+                // Try pushing anyway if layout detection fails, to avoid indefinite hang
+                pushAd();
             }
         }, 100);
 

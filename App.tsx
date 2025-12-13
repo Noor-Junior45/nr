@@ -11,6 +11,7 @@ import Footer from './components/Footer';
 import WelcomeModal from './components/WelcomeModal';
 import AIChat from './components/AIChat';
 import BackToTop from './components/BackToTop';
+import AdSense from './components/AdSense';
 
 const App: React.FC = () => {
   useEffect(() => {
@@ -74,6 +75,12 @@ const App: React.FC = () => {
         <Services />
         <HealthTips />
         <FAQ />
+        
+        {/* Advertising Box between FAQ and Contact */}
+        <div className="container mx-auto px-4 reveal">
+            <AdSense slot="8877665544" />
+        </div>
+
         <Contact />
       </main>
       <Footer />
