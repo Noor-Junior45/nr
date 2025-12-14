@@ -8,6 +8,12 @@ const WELCOME_MSG = "Hello! 👋 I'm your AI Pharmacist assistant. \n\nAsk me ab
 const AIChat: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isConfirmingClear, setIsConfirmingClear] = useState(false);
+    
+    // Unread state for notification dot (Initially true for visibility)
+    const [hasUnread, setHasUnread] = useState(true);
+    
+    // Ref to track open state inside async functions
+    const isOpenRef = useRef(isOpen);
 
     // Lazy initialization for persistence
     const [messages, setMessages] = useState<ChatMessage[]>(() => {
@@ -40,6 +46,14 @@ const AIChat: React.FC = () => {
 
     // Quick suggestions
     const suggestions = ["Medicine for headache", "Fever dosage?", "Pet dard upay", "Sardi khaasi"];
+
+    // Sync ref and handle unread state
+    useEffect(() => {
+        isOpenRef.current = isOpen;
+        if (isOpen) {
+            setHasUnread(false);
+        }
+    }, [isOpen]);
 
     // Handle Mobile Back Button / Gesture
     useEffect(() => {
@@ -192,6 +206,11 @@ const AIChat: React.FC = () => {
 
         setMessages(prev => [...prev, aiMessage]);
         setIsLoading(false);
+
+        // If user has closed the chat while waiting, show the notification dot
+        if (!isOpenRef.current) {
+            setHasUnread(true);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent, overrideText?: string) => {
@@ -229,6 +248,11 @@ const AIChat: React.FC = () => {
 
         setMessages(prev => [...prev, aiMessage]);
         setIsLoading(false);
+
+        // If user has closed the chat while waiting, show the notification dot
+        if (!isOpenRef.current) {
+            setHasUnread(true);
+        }
     };
 
     return (
@@ -239,6 +263,14 @@ const AIChat: React.FC = () => {
                 className={`fixed bottom-6 right-6 z-[90] p-0 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105 group ${isOpen ? 'rotate-90' : 'animate-bounce-subtle'}`}
                 aria-label="Chat with AI Pharmacist"
             >
+                {/* Notification Dot */}
+                {hasUnread && (
+                    <span className="absolute -top-1 -right-1 flex h-5 w-5 z-20">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 border-2 border-white shadow-sm"></span>
+                    </span>
+                )}
+
                 {/* Pulse Animation */}
                 <div className={`absolute inset-0 bg-medical-400 rounded-full animate-ping opacity-20 ${isOpen ? 'hidden' : 'block'}`}></div>
 

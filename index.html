@@ -133,37 +133,28 @@
 
     <style>
         /* 
-           MODERN 3D & VIBRANT BACKGROUND 
-           Replacing the old linear gradient with a mesh-like abstract background
+           CLEAN MEDICAL TYPOGRAPHY
         */
         body {
-            background-color: #f8fafc;
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(22, 163, 74, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(22, 163, 74, 0.1) 0px, transparent 50%),
-                radial-gradient(at 0% 100%, rgba(168, 85, 247, 0.05) 0px, transparent 50%);
-            background-attachment: fixed;
+            background-color: #ffffff;
             min-height: 100vh;
-            color: #111827;
+            color: #0f172a;
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
-        /* 3D Glass Panel - Thicker borders, stronger shadows */
+        /* 3D Glass Panel */
         .glass-panel {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-top: 2px solid rgba(255, 255, 255, 0.9);
-            border-left: 2px solid rgba(255, 255, 255, 0.9);
-            border-right: 1px solid rgba(255, 255, 255, 0.3);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
             box-shadow: 
-                0 10px 40px -10px rgba(22, 163, 74, 0.1),
-                0 0 15px rgba(255, 255, 255, 0.5) inset;
+                0 4px 6px -1px rgba(0, 0, 0, 0.02),
+                0 10px 15px -3px rgba(45, 212, 191, 0.05),
+                0 0 0 1px rgba(255, 255, 255, 0.5) inset;
         }
         
-        /* 3D Glass Card - For grid items */
+        /* 3D Glass Card */
         .glass-card {
             background: rgba(255, 255, 255, 0.75);
             backdrop-filter: blur(12px);
@@ -208,6 +199,12 @@
             100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); transform: scale(1); }
         }
 
+        /* Added Missing Shine Keyframes */
+        @keyframes shine {
+            0% { left: -75%; }
+            100% { left: 125%; }
+        }
+
         .magic-focus {
             animation: magicGlow 1.5s ease-out;
             position: relative;
@@ -245,6 +242,14 @@
         h1, h2, h3, h4, h5, h6 {
             letter-spacing: -0.02em;
         }
+
+        /* Update scrollbar color to match teal/medical theme */
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(45, 212, 191, 0.4); /* Teal */
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(45, 212, 191, 0.7);
+        }
     </style>
 <script type="importmap">
 {
@@ -259,14 +264,7 @@
 }
 </script>
 </head>
-  <body class="font-sans overflow-x-hidden antialiased selection:bg-medical-500 selection:text-white">
-    <!-- Animated background blobs for depth -->
-    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none opacity-40">
-        <div class="absolute top-0 left-1/4 w-96 h-96 bg-medical-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-        <div class="absolute top-0 right-1/4 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" style="animation-delay: 2s"></div>
-        <div class="absolute -bottom-32 left-1/3 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" style="animation-delay: 4s"></div>
-    </div>
-    
+  <body class="font-sans overflow-x-hidden antialiased selection:bg-teal-500 selection:text-white">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 

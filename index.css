@@ -25,6 +25,12 @@
     100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); transform: scale(1); border-color: transparent; }
 }
 
+/* Explicitly define shine keyframes */
+@keyframes shine {
+    0% { left: -75%; }
+    100% { left: 125%; }
+}
+
 .magic-focus {
     animation: magicGlow 1.5s ease-out;
     position: relative;
@@ -56,10 +62,10 @@
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-/* Custom Scrollbar for Modals */
+/* Custom Scrollbar for Modals & Page */
 .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(34, 197, 94, 0.4) transparent;
+    scrollbar-color: rgba(20, 184, 166, 0.5) transparent; /* Teal-500/50 */
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -71,12 +77,12 @@
     margin-block: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(34, 197, 94, 0.4);
+    background: rgba(20, 184, 166, 0.5); /* Teal-500/50 */
     border-radius: 10px;
     border: 1px solid transparent;
     background-clip: content-box;
     transition: background 0.2s ease;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(34, 197, 94, 0.7);
+    background: rgba(13, 148, 136, 0.8); /* Teal-600 */
 }

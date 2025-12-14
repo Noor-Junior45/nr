@@ -47,7 +47,8 @@ const FAQ: React.FC = () => {
     };
 
     return (
-        <section id="faq" className="py-16 scroll-mt-24">
+        // Start: White -> Via: Medical-100/50 (Increased depth) -> End: White
+        <section id="faq" className="py-16 scroll-mt-24 bg-gradient-to-b from-white via-medical-100/50 to-white">
             <div className="container mx-auto px-4 max-w-4xl">
                 <div className="text-center mb-12 reveal">
                     <span className="inline-block py-1 px-3 rounded-full bg-white/60 backdrop-blur-md text-medical-800 text-sm font-semibold mb-3 shadow-sm border border-white/50">
@@ -63,7 +64,7 @@ const FAQ: React.FC = () => {
                         return (
                             <div 
                                 key={index} 
-                                className={`glass-card rounded-2xl transition-all duration-300 ${isOpen ? 'shadow-lg ring-1 ring-medical-200/50 bg-white/80' : 'shadow-sm hover:shadow-md hover:bg-white/60'}`}
+                                className={`glass-card rounded-2xl transition-all duration-300 ${isOpen ? 'shadow-lg ring-1 ring-medical-200/50 bg-white' : 'shadow-sm hover:shadow-md bg-white/60'}`}
                             >
                                 <button
                                     onClick={() => toggleFAQ(index)}
@@ -73,14 +74,14 @@ const FAQ: React.FC = () => {
                                     <span className={`font-bold text-lg transition-colors duration-300 ${isOpen ? 'text-medical-700' : 'text-gray-800 group-hover:text-medical-600'}`}>
                                         {faq.question}
                                     </span>
-                                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${isOpen ? 'bg-medical-100 text-medical-600 rotate-180' : 'bg-gray-100/50 text-gray-400 group-hover:bg-medical-50'}`}>
+                                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${isOpen ? 'bg-medical-100 text-medical-600 rotate-180' : 'bg-white text-gray-400 group-hover:bg-medical-50'}`}>
                                         <i className="fas fa-chevron-down text-sm"></i>
                                     </div>
                                 </button>
                                 
                                 {isOpen && (
                                     <div className="animate-fade-in">
-                                        <div className="p-5 pt-0 text-gray-700 border-t border-gray-100/50 leading-relaxed font-medium">
+                                        <div className="p-5 pt-0 text-gray-700 border-t border-gray-100 leading-relaxed font-medium">
                                             {faq.answer}
                                         </div>
                                     </div>

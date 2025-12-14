@@ -100,7 +100,9 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
     };
 
     return (
-        <section id="products" className="scroll-mt-24 min-h-[800px] transition-all duration-500 relative py-12" aria-label="Products Section">
+        // Reverted to Medical Green Theme (Emerald/Teal) to match "Old Green Color" request
+        // Start: Emerald-100 (Matches About End) -> Via: Medical-100 -> End: Medical-50
+        <section id="products" className="scroll-mt-24 min-h-[800px] transition-all duration-500 relative py-16 bg-gradient-to-br from-emerald-100 via-medical-100 to-medical-50" aria-label="Products Section">
             
             {/* Search Focus Backdrop - Fixed Z-index (40) to be BELOW Navbar (50) */}
             <div 
@@ -112,7 +114,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
             <div className="container mx-auto px-4">
                 
                 {/* No Delivery Notice Banner */}
-                <div className="glass-panel border-l-4 border-l-orange-500 p-4 mb-8 rounded-r-lg shadow-sm reveal flex items-start md:items-center animate-fade-in relative z-10">
+                <div className="glass-panel border-l-4 border-l-orange-500 p-4 mb-8 rounded-r-lg shadow-sm reveal flex items-start md:items-center animate-fade-in relative z-10 bg-white/60">
                     <div className="flex-shrink-0 text-orange-500">
                         <i className="fas fa-store-slash text-2xl"></i>
                     </div>
@@ -143,8 +145,8 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                         <form onSubmit={handleSearch} className={`relative group w-full transition-all duration-300 ${isFocused ? 'shadow-2xl rounded-full' : ''}`} role="search">
                             <label htmlFor="product-search-input" className="sr-only">Search medicines, products, or symptoms</label>
                             
-                            {/* Glow Effect */}
-                            <div className={`absolute inset-0 bg-gradient-to-r from-medical-400 to-blue-400 rounded-full blur-md opacity-30 group-hover:opacity-60 transition duration-500 ${isSearching ? 'animate-pulse' : ''} ${isFocused ? 'opacity-60 blur-lg scale-105' : ''}`}></div>
+                            {/* Glow Effect - Green/Teal */}
+                            <div className={`absolute inset-0 bg-gradient-to-r from-medical-400 to-teal-400 rounded-full blur-md opacity-30 group-hover:opacity-60 transition duration-500 ${isSearching ? 'animate-pulse' : ''} ${isFocused ? 'opacity-60 blur-lg scale-105' : ''}`}></div>
                             
                             <input 
                                 id="product-search-input"
@@ -154,7 +156,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                 onFocus={() => setIsFocused(true)}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search medicines, products, or symptoms..." 
-                                className={`w-full bg-white/80 backdrop-blur-md border-2 text-gray-800 text-lg rounded-full py-4 pl-6 pr-24 shadow-lg focus:outline-none transition-all duration-300 relative z-10 placeholder-gray-500 ${isFocused ? 'border-medical-500 shadow-xl bg-white' : 'border-white/50'}`}
+                                className={`w-full bg-white/90 backdrop-blur-md border-2 text-gray-800 text-lg rounded-full py-4 pl-6 pr-24 shadow-lg focus:outline-none transition-all duration-300 relative z-10 placeholder-gray-500 ${isFocused ? 'border-medical-400 shadow-xl bg-white' : 'border-white/50'}`}
                                 aria-label="Search medicines, products, or symptoms"
                             />
 
@@ -203,7 +205,6 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                     </div>
                     
                     {/* Independent Clear Button shown below search bar when results are filtered */}
-                    {/* Fixed Z-Index: removed z-50 to z-10 so it goes behind fixed navbar on scroll */}
                     {hasSearched && (
                         <div className="mt-6 flex justify-center animate-fade-in z-10 relative">
                             <button 
@@ -226,16 +227,16 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                         displayedProducts.map((product, index) => (
                             <div 
                                 key={product.id} 
-                                className={`glass-card rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden flex flex-col h-full group bg-white transform hover:-translate-y-2 hover:scale-[1.02] animate-fade-in-up ${isAiResult ? 'border-2 border-indigo-200 ring-2 ring-indigo-50 shadow-indigo-100' : ''}`}
+                                className={`glass-card rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden flex flex-col h-full group bg-white border border-medical-100/50 transform hover:-translate-y-2 hover:scale-[1.02] animate-fade-in-up ${isAiResult ? 'border-2 border-indigo-200 ring-2 ring-indigo-50 shadow-indigo-100' : ''}`}
                                 style={{ animationDelay: `${(index % 5) * 100}ms` }}
                             >
                                 <div 
-                                    className="overflow-hidden h-56 p-6 relative cursor-pointer bg-gradient-to-br from-white to-gray-50 group-hover:from-blue-50 group-hover:to-white transition-colors duration-300 flex items-center justify-center border-b border-gray-100"
+                                    className="overflow-hidden h-56 p-6 relative cursor-pointer bg-gradient-to-br from-medical-50 to-white group-hover:from-medical-100 group-hover:to-medical-50 transition-colors duration-300 flex items-center justify-center border-b border-medical-50"
                                     onClick={() => openQuickView(product)}
                                 >
                                     <ProductCardImage src={product.image} alt={product.name} />
                                     
-                                    {/* Wishlist Toggle Button (Top-Left) - Enhanced Animation */}
+                                    {/* Wishlist Toggle Button (Top-Left) */}
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -244,7 +245,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                         className={`absolute top-3 left-3 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm transform hover:scale-110 active:scale-75 ${
                                             wishlist.includes(product.id) 
                                             ? 'bg-red-50 text-red-500 shadow-md shadow-red-100 border border-red-200' 
-                                            : 'bg-white/90 text-gray-300 hover:text-red-500 hover:bg-red-50 border border-gray-100'
+                                            : 'bg-white/90 text-gray-300 hover:text-red-500 hover:bg-red-50 border border-medical-100'
                                         }`}
                                         title={wishlist.includes(product.id) ? "Remove from Wishlist" : "Add to Wishlist"}
                                         aria-label={wishlist.includes(product.id) ? "Remove from Wishlist" : "Add to Wishlist"}
@@ -286,7 +287,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                         </button>
                                     </div>
                                 </div>
-                                <div className="p-5 flex flex-col flex-grow relative">
+                                <div className="p-5 flex flex-col flex-grow relative bg-white">
                                     <div className="mb-2">
                                         {product.category && (
                                             <p className="text-xs font-semibold text-medical-600 mb-1 uppercase tracking-wider">{product.category}</p>
@@ -314,7 +315,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                             </div>
                         ))
                     ) : (
-                        <div className="col-span-full text-center py-12 animate-fade-in glass-panel rounded-2xl" role="status">
+                        <div className="col-span-full text-center py-12 animate-fade-in glass-panel rounded-2xl bg-white/50" role="status">
                             <div className="text-gray-400 mb-4">
                                 <i className="fas fa-search text-4xl" aria-hidden="true"></i>
                             </div>

@@ -98,13 +98,14 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClos
                                 {/* Wishlist in Modal */}
                                 <button
                                     onClick={onToggleWishlist}
-                                    className={`ml-auto sm:hidden w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-75 shadow-sm ${
+                                    className={`ml-auto w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 shadow-sm group ${
                                         isWishlisted
-                                        ? 'bg-red-50 text-red-500 border border-red-100' 
+                                        ? 'bg-red-50 text-red-500 border border-red-200' 
                                         : 'bg-gray-100 text-gray-400 hover:text-red-500 hover:bg-red-50'
                                     }`}
+                                    title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
                                 >
-                                    <i className={`${isWishlisted ? 'fas fa-heart' : 'far fa-heart'} text-lg`}></i>
+                                    <i className={`${isWishlisted ? 'fas fa-heart text-red-500' : 'far fa-heart'} text-lg transition-transform duration-300 ${isWishlisted ? 'scale-125 drop-shadow-sm' : 'scale-100 group-hover:scale-110'}`}></i>
                                 </button>
                             </div>
                             <h2 id="modal-title" className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">

@@ -49,7 +49,8 @@ const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) =>
     }, []);
 
     return (
-        <nav className="bg-white fixed w-full z-50 transition-all duration-300 animate-slide-down shadow-md border-b border-gray-100">
+        // Upgraded to Glassmorphism: bg-white/90 + backdrop-blur
+        <nav className="bg-white/90 backdrop-blur-lg fixed w-full z-50 transition-all duration-300 animate-slide-down shadow-sm border-b border-white/50">
             {/* Reduced vertical padding from py-3 to py-1 */}
             <div className="container mx-auto px-4 py-2 flex flex-col">
                 
@@ -75,13 +76,15 @@ const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) =>
                         {/* Wishlist Button (Always Visible) */}
                         <button 
                             onClick={onOpenWishlist}
-                            className="relative w-10 h-10 rounded-full flex items-center justify-center hover:bg-red-50 transition-colors group"
+                            className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 group ${wishlistCount > 0 ? 'bg-red-50 border border-red-200 shadow-inner' : 'hover:bg-red-50 border border-transparent'}`}
                             title="View Wishlist"
                             aria-label="View Wishlist"
                         >
-                            <i className="fas fa-heart text-xl text-gray-400 group-hover:text-red-500 transition-colors"></i>
+                            {/* Logic: FAS (Solid) + Red if items exist. FAR (Outline) + Gray if empty. */}
+                            <i className={`text-xl transition-all duration-300 ${wishlistCount > 0 ? 'fas fa-heart text-red-500 scale-110' : 'far fa-heart text-gray-400 group-hover:text-red-500'}`}></i>
+                            
                             {wishlistCount > 0 && (
-                                <span className="absolute top-1 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm animate-scale-up">
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-md animate-scale-up border-2 border-white">
                                     {wishlistCount}
                                 </span>
                             )}
@@ -100,7 +103,7 @@ const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) =>
 
                 {/* ROW 2: Desktop/Tablet Menu - Right Aligned */}
                 {/* INCREASED TEXT SIZE HERE: text-sm md:text-base lg:text-lg */}
-                <div className="hidden md:flex justify-end items-center w-full animate-fade-in border-t border-gray-100 pt-1">
+                <div className="hidden md:flex justify-end items-center w-full animate-fade-in border-t border-gray-100/50 pt-1">
                     <div className="flex flex-wrap gap-x-6 gap-y-2 font-semibold text-gray-600">
                         {navLinks.map((link) => (
                             <a 
@@ -132,9 +135,9 @@ const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) =>
                 </div>
             </div>
 
-            {/* Mobile Menu Dropdown - Solid Background */}
+            {/* Mobile Menu Dropdown - Glass Background */}
             <div 
-                className={`md:hidden bg-white border-t border-gray-100 absolute w-full left-0 top-full transform transition-all duration-300 origin-top z-40 shadow-xl ${isMobileMenuOpen ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0 pointer-events-none'}`}
+                className={`md:hidden bg-white/95 backdrop-blur-xl border-t border-gray-100 absolute w-full left-0 top-full transform transition-all duration-300 origin-top z-40 shadow-xl ${isMobileMenuOpen ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0 pointer-events-none'}`}
             >
                 <div className="p-4 flex flex-col space-y-2">
                     {navLinks.map((link) => (

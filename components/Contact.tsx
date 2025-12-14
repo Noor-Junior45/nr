@@ -2,13 +2,14 @@ import React from 'react';
 
 const Contact: React.FC = () => {
     return (
-        <section id="contact" className="py-20 scroll-mt-24">
+        // Start: White (Matches FAQ End) -> Fade In: Medical-100 -> Fade Out: Medical-50/White
+        <section id="contact" className="py-20 scroll-mt-24 bg-gradient-to-b from-white via-medical-100 to-white">
             <div className="container mx-auto px-4">
                 <div className="text-center mb-12 reveal">
                     <h2 className="text-4xl font-bold text-gray-900 mb-4 drop-shadow-sm">Visit Us Today</h2>
                     <p className="text-lg text-gray-700 mb-6 font-medium">We are open every day to serve your healthcare needs.</p>
                     
-                    <div className="inline-block bg-white/70 backdrop-blur-md px-6 py-3 rounded-full border border-white/60 shadow-md text-gray-600 text-sm animate-fade-in">
+                    <div className="inline-block bg-orange-50 px-6 py-3 rounded-full border border-orange-100 shadow-sm text-gray-600 text-sm animate-fade-in">
                         <i className="fas fa-info-circle text-orange-500 mr-2 text-lg"></i>
                         <span className="font-bold text-gray-800">Note:</span> We do not provide home delivery. Please visit our store for all purchases.
                     </div>
@@ -17,27 +18,27 @@ const Contact: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     
                     {/* Box 1: Contact Info */}
-                    <div className="reveal glass-panel rounded-3xl p-8 hover-lift-smooth flex flex-col justify-between relative z-10 animate-fade-in-up">
+                    <div className="reveal bg-white/60 backdrop-blur-sm border border-white rounded-3xl p-8 hover-lift-smooth flex flex-col justify-between relative z-10 animate-fade-in-up">
                         <div>
-                            <div className="bg-blue-100/80 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-blue-600 shadow-sm border border-blue-200">
+                            <div className="bg-medical-100/80 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-medical-600 shadow-sm border border-medical-200">
                                 <i className="fas fa-headset text-2xl"></i>
                             </div>
                             <h3 className="text-2xl font-bold text-gray-800 mb-4">Contact Us</h3>
                             <ul className="space-y-4">
                                 <li className="flex items-center group">
-                                    <span className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center mr-3 group-hover:bg-medical-50 transition border border-white/60">
+                                    <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center mr-3 group-hover:bg-medical-50 transition border border-gray-200">
                                         <i className="fas fa-phone-alt text-gray-400 group-hover:text-medical-600"></i>
                                     </span>
                                     <a href="tel:+919199749447" className="text-lg font-medium text-gray-700 hover:text-medical-600 transition">+91 91997 49447</a>
                                 </li>
                                 <li className="flex items-center group">
-                                    <span className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center mr-3 group-hover:bg-medical-50 transition border border-white/60">
+                                    <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center mr-3 group-hover:bg-medical-50 transition border border-gray-200">
                                         <i className="fas fa-phone-alt text-gray-400 group-hover:text-medical-600"></i>
                                     </span>
                                     <a href="tel:+919798881368" className="text-lg font-medium text-gray-700 hover:text-medical-600 transition">+91 97988 81368</a>
                                 </li>
                                 <li className="flex items-center group">
-                                    <span className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center mr-3 group-hover:bg-medical-50 transition border border-white/60">
+                                    <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center mr-3 group-hover:bg-medical-50 transition border border-gray-200">
                                         <i className="fas fa-envelope text-gray-400 group-hover:text-medical-600"></i>
                                     </span>
                                     <a href="mailto:newluckypharmacy@gmail.com" className="text-base font-medium text-gray-700 hover:text-medical-600 transition">newluckypharmacy@gmail.com</a>
@@ -45,19 +46,19 @@ const Contact: React.FC = () => {
                             </ul>
                         </div>
                         {/* Google Design Call Button (Green) */}
-                        <a href="tel:+919798881368" className="mt-8 w-full py-3 bg-medical-600 hover:bg-medical-700 text-white font-medium text-lg text-center rounded-full transition shadow-lg flex items-center justify-center hover:scale-[1.03] glass-card border-none">
+                        <a href="tel:+919798881368" className="mt-8 w-full py-3 bg-medical-600 hover:bg-medical-700 text-white font-medium text-lg text-center rounded-full transition shadow-lg flex items-center justify-center hover:scale-[1.03] border-none">
                             <i className="fas fa-phone-alt mr-2 text-sm"></i> Call Now
                         </a>
                     </div>
 
                     {/* Box 2: Opening Hours */}
-                    <div className="reveal reveal-delay-100 glass-panel rounded-3xl p-8 hover-lift-smooth animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                    <div className="reveal reveal-delay-100 bg-white/60 backdrop-blur-sm border border-white rounded-3xl p-8 hover-lift-smooth animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                         <div className="bg-medical-100/80 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-medical-600 shadow-sm border border-medical-200">
                             <i className="far fa-clock text-2xl"></i>
                         </div>
                         <h3 className="text-2xl font-bold text-gray-800 mb-4">Opening Hours</h3>
                         <div className="space-y-4">
-                            <div className="border-b border-gray-200/50 pb-3">
+                            <div className="border-b border-gray-200 pb-3">
                                 <p className="font-bold text-medical-700 mb-2 text-sm uppercase tracking-wide">Mon - Sun (Except Fri)</p>
                                 <div className="flex justify-between text-sm text-gray-600 mb-1">
                                     <span>Morning</span>
@@ -86,7 +87,7 @@ const Contact: React.FC = () => {
                     </div>
 
                     {/* Box 3: Feedback */}
-                    <div className="reveal reveal-delay-200 glass-panel rounded-3xl p-8 hover-lift-smooth flex flex-col justify-between animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                    <div className="reveal reveal-delay-200 bg-white/60 backdrop-blur-sm border border-white rounded-3xl p-8 hover-lift-smooth flex flex-col justify-between animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                         <div>
                             <div className="bg-yellow-100/80 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-yellow-600 shadow-sm border border-yellow-200">
                                 <i className="fas fa-star text-2xl"></i>
@@ -103,7 +104,7 @@ const Contact: React.FC = () => {
                             </div>
                         </div>
 
-                        <a href="https://www.google.com/search?q=New+Lucky+Pharma+Hanwara+Jharkhand" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full py-3 bg-white/80 text-gray-700 border border-gray-200 font-bold rounded-xl hover:bg-white transition shadow-sm group hover:scale-105 duration-300">
+                        <a href="https://www.google.com/search?q=New+Lucky+Pharma+Hanwara+Jharkhand" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full py-3 bg-white text-gray-700 border border-gray-200 font-bold rounded-xl hover:bg-gray-50 transition shadow-sm group hover:scale-105 duration-300">
                             <svg className="w-6 h-6 mr-2" viewBox="0 0 48 48">
                                 <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
                                 <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
@@ -116,7 +117,7 @@ const Contact: React.FC = () => {
                     </div>
 
                     {/* Box 4: Payment Modes */}
-                    <div className="reveal reveal-delay-300 glass-panel rounded-3xl p-8 hover-lift-smooth flex flex-col justify-between animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                    <div className="reveal reveal-delay-300 bg-white/60 backdrop-blur-sm border border-white rounded-3xl p-8 hover-lift-smooth flex flex-col justify-between animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
                         <div>
                             <div className="bg-purple-100/80 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-purple-600 shadow-sm border border-purple-200">
                                 <i className="fas fa-wallet text-2xl"></i>
@@ -132,7 +133,7 @@ const Contact: React.FC = () => {
                                     <span className="font-bold text-gray-700 text-sm">Cash Accepted</span>
                                 </div>
 
-                                <div className="p-3 bg-white/50 rounded-xl border border-gray-100 hover:border-purple-200 transition duration-300 backdrop-blur-sm">
+                                <div className="p-3 bg-white rounded-xl border border-gray-100 hover:border-purple-200 transition duration-300">
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Scan & Pay via</p>
                                     <div className="flex flex-wrap gap-3 items-center">
                                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Google_Pay_Logo.svg/512px-Google_Pay_Logo.svg.png" alt="Google Pay" className="h-4 object-contain opacity-80 hover:opacity-100 transition hover:scale-110" />
@@ -153,7 +154,7 @@ const Contact: React.FC = () => {
                         href="https://www.google.com/search?q=New+Lucky+Pharma+Hanwara+Jharkhand" 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="reveal reveal-delay-200 block md:col-span-2 lg:col-span-2 glass-panel rounded-3xl overflow-hidden hover-lift-smooth relative group h-full min-h-[400px] cursor-pointer animate-fade-in-up border-4 border-white/30"
+                        className="reveal reveal-delay-200 block md:col-span-2 lg:col-span-2 glass-panel rounded-3xl overflow-hidden hover-lift-smooth relative group h-full min-h-[400px] cursor-pointer animate-fade-in-up border-4 border-white"
                         style={{ animationDelay: '0.4s' }}
                     >
                         <img 
@@ -173,7 +174,7 @@ const Contact: React.FC = () => {
                     </a>
 
                     {/* Box 6: Map - Spans 2 Cols on Large Screens */}
-                    <div id="map-location" className="reveal reveal-delay-400 md:col-span-2 lg:col-span-2 h-auto min-h-[320px] rounded-3xl overflow-hidden glass-panel hover-lift-smooth relative group scroll-mt-24 animate-fade-in-up border-4 border-white/30" style={{ animationDelay: '0.5s' }}>
+                    <div id="map-location" className="reveal reveal-delay-400 md:col-span-2 lg:col-span-2 h-auto min-h-[320px] rounded-3xl overflow-hidden glass-panel hover-lift-smooth relative group scroll-mt-24 animate-fade-in-up border-4 border-white" style={{ animationDelay: '0.5s' }}>
                         <iframe 
                             width="100%" 
                             height="100%" 
@@ -183,13 +184,21 @@ const Contact: React.FC = () => {
                             scrolling="no" 
                             marginHeight={0} 
                             marginWidth={0}
-                            className="w-full h-full"
+                            className="w-full h-full bg-gray-200"
                             style={{ filter: 'contrast(1.1)' }}
+                            allowFullScreen={true}
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
                             title="Google Map"
                         >
                         </iframe>
                         
-                        <a href="https://www.google.com/maps/dir/?api=1&destination=New+Lucky+Pharma+Hanwara+Jharkhand" target="_blank" rel="noopener noreferrer" className="absolute bottom-4 left-32 bg-medical-600/90 backdrop-blur-sm text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-medical-700 transition transform hover:-translate-y-1 flex items-center z-10 border border-white/50 btn-shine">
+                        <a 
+                            href="https://www.google.com/maps/dir/?api=1&destination=New+Lucky+Pharma+Hanwara+Jharkhand" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-medical-600/90 backdrop-blur-sm text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-medical-700 transition hover:-translate-y-1 flex items-center z-10 border border-white/50 btn-shine whitespace-nowrap"
+                        >
                             <i className="fas fa-directions mr-2"></i> Get Directions
                         </a>
                     </div>
