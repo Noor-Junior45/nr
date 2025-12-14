@@ -155,7 +155,10 @@ const App: React.FC = () => {
         
         {/* Advertising Box between FAQ and Contact */}
         <div className="container mx-auto px-4 reveal">
-            <AdSense slot="8877665544" />
+            <AdSense 
+                slot="7013153337" 
+                format="autorelaxed" 
+            />
         </div>
 
         <Contact />
