@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
-import About from './components/About';
+// About import removed - Merged into VideoPromo
 import Products from './components/Products';
 import Services from './components/Services';
 import HealthTips from './components/HealthTips';
@@ -15,6 +15,7 @@ import AdSense from './components/AdSense';
 import WishlistModal from './components/WishlistModal';
 import Toast from './components/Toast';
 import ProductDetailModal from './components/ProductDetailModal';
+import VideoPromo from './components/VideoPromo';
 import { Product } from './types';
 import { productList } from './data/products';
 
@@ -147,7 +148,8 @@ const App: React.FC = () => {
       />
       <main>
         <Hero />
-        <About />
+        {/* About Component Removed - Content merged into VideoPromo */}
+        <VideoPromo />
         <Products wishlist={wishlist} toggleWishlist={toggleWishlist} />
         <Services />
         <HealthTips />
@@ -166,7 +168,8 @@ const App: React.FC = () => {
       <Footer />
       <WelcomeModal />
       <BackToTop />
-      <AIChat />
+      {/* Updated AIChat with Handler to View Product */}
+      <AIChat onViewProduct={(product) => setViewedProduct(product)} />
       
       <WishlistModal 
           isOpen={isWishlistOpen} 
@@ -177,7 +180,7 @@ const App: React.FC = () => {
           onProductClick={(product) => setViewedProduct(product)}
       />
 
-      {/* Detail Modal triggered from Wishlist */}
+      {/* Detail Modal triggered from Wishlist or Chat */}
       {viewedProduct && (
           <ProductDetailModal 
               product={viewedProduct}

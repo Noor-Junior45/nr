@@ -30,11 +30,6 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClos
         }
     }, [isWishlisted]);
 
-    // Derived related products (simple logic for now, or passed as prop if needed context)
-    // For this isolated component, we might skip related products or strictly pass them. 
-    // To keep it simple and reusable, I'll omit the related products section inside the modal 
-    // or handle it if passed. For now, let's keep the core details which are most important.
-
     const askAI = (e: React.MouseEvent) => {
         e.stopPropagation();
         const event = new CustomEvent('ask-ai', { 
@@ -44,7 +39,15 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClos
         onClose();
     };
 
-    const isAiResult = product.id > 100000; // Heuristic for AI items based on ID generation in geminiService
+    const isAiResult = product.id > 100000; // Heuristic for AI items
+
+    // Updated WhatsApp Link Logic
+    const getWhatsAppLink = () => {
+        const phoneNumber = "919798881368";
+        // Pre-fill text with medicine name as requested
+        const message = `Hello New Lucky Pharma, I want to check the availability of: ${product.name}`;
+        return `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    };
 
     return (
         <div 
@@ -71,143 +74,147 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClos
                 </button>
     
                 {/* Left: Image Panel */}
-                <div className="w-full md:w-5/12 bg-gradient-to-br from-blue-50 via-indigo-50/30 to-white relative flex items-center justify-center p-6 md:p-12 min-h-[220px] md:min-h-full border-b md:border-b-0 md:border-r border-gray-100 order-1 flex-shrink-0">
-                    {/* Badges Overlay */}
-                    <div className="absolute top-6 left-6 flex flex-col gap-2 z-10 items-start">
-                        {product.isPrescriptionRequired && (
-                            <span className="bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5">
-                                <i className="fas fa-file-prescription"></i> Prescription Required
-                            </span>
-                        )}
-                        {isAiResult ? (
-                            <span className="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5">
-                                <i className="fas fa-robot"></i> AI Suggested
-                            </span>
-                        ) : (
-                            <span className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5">
-                                <i className="fas fa-check-circle"></i> In Stock
-                            </span>
-                        )}
-                    </div>
+                <div className="w-full md:w-5/12 bg-gradient-to-br from-blue-50 via-indigo-50/30 to-white relative flex items-center justify-center p-6 md:p-12 min-h-[300px] md:h-full">
+                     {/* Background Blob */}
+                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-white rounded-full mix-blend-overlay blur-3xl opacity-50"></div>
+                     
+                     <div className="relative z-10 w-full max-w-[300px] aspect-square drop-shadow-2xl transform transition-transform duration-500 hover:scale-105">
+                        <ProductCardImage src={product.image} alt={product.name} className="rounded-2xl" />
+                     </div>
 
-                    <ProductCardImage src={product.image} alt={product.name} className="w-full h-full max-h-[180px] md:max-h-[400px]" />
+                     {/* AI Badge on Image */}
+                     {isAiResult && (
+                        <div className="absolute top-6 left-6 bg-indigo-600/90 backdrop-blur text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-2 border border-white/20">
+                            <i className="fas fa-robot animate-pulse"></i>
+                            <span>AI Generated Result</span>
+                        </div>
+                     )}
                 </div>
 
-                {/* Right: Content Panel */}
-                <div className="w-full md:w-7/12 flex flex-col h-full bg-white relative order-2 overflow-hidden">
+                {/* Right: Details Panel */}
+                <div className="w-full md:w-7/12 bg-white flex flex-col h-full overflow-hidden">
+                    
                     {/* Scrollable Content */}
-                    <div 
-                        className="flex-1 overflow-y-auto p-5 md:p-10 pb-40 md:pb-28 custom-scrollbar overscroll-contain scroll-smooth"
-                    >
-                        <div className="flex flex-col gap-1 mb-6">
-                            <div className="flex items-center gap-2 mb-1">
-                                {product.category && (
-                                    <span className="text-xs font-bold text-medical-600 bg-medical-50 px-2 py-1 rounded uppercase tracking-wider">
-                                        {product.category}
-                                    </span>
-                                )}
-                                {/* Wishlist in Modal */}
-                                <button
-                                    onClick={onToggleWishlist}
-                                    className={`ml-auto w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 shadow-sm group ${
-                                        isWishlisted
-                                        ? 'bg-red-50 text-red-500 border border-red-200' 
-                                        : 'bg-gray-100 text-gray-400 hover:text-red-500 hover:bg-red-50'
-                                    }`}
-                                    title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
-                                >
-                                    <i className={`${isWishlisted ? 'fas fa-heart text-red-500' : 'far fa-heart'} text-lg transition-transform duration-300 ${isAnimating ? 'scale-150' : (isWishlisted ? 'scale-125 drop-shadow-sm' : 'scale-100 group-hover:scale-110')}`}></i>
-                                </button>
-                            </div>
-                            <h2 id="modal-title" className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
-                                {product.name}
-                            </h2>
+                    <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar">
+                        
+                        {/* Badges Row */}
+                        <div className="flex flex-wrap items-center gap-3 mb-4">
+                            {product.category && (
+                                <span className="px-3 py-1 rounded-full bg-medical-50 text-medical-700 text-xs font-bold uppercase tracking-wider border border-medical-100">
+                                    {product.category}
+                                </span>
+                            )}
+                            {product.isPrescriptionRequired ? (
+                                <span className="px-3 py-1 rounded-full bg-red-50 text-red-600 text-xs font-bold uppercase tracking-wider border border-red-100 flex items-center gap-1">
+                                    <i className="fas fa-file-prescription"></i> Prescription Required
+                                </span>
+                            ) : (
+                                <span className="px-3 py-1 rounded-full bg-green-50 text-green-600 text-xs font-bold uppercase tracking-wider border border-green-100 flex items-center gap-1">
+                                    <i className="fas fa-check-circle"></i> OTC Product
+                                </span>
+                            )}
                         </div>
 
-                        {/* Description Card */}
-                        <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 mb-8">
-                            <p className="text-gray-700 leading-relaxed text-base">
-                                {product.description}
-                            </p>
-                        </div>
+                        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">{product.name}</h2>
+                        
+                        <p className="text-gray-600 text-lg leading-relaxed mb-8 border-l-4 border-medical-200 pl-4">
+                            {product.description}
+                        </p>
 
                         {/* Info Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-                            {/* Usage */}
-                            {product.usage && (
-                                <div className="flex flex-col gap-2">
-                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                        <i className="fas fa-capsules text-medical-500"></i> Usage
-                                    </h3>
-                                    <p className="text-sm text-gray-700 font-medium bg-white border border-gray-100 p-3 rounded-xl shadow-sm">
-                                        {product.usage}
-                                    </p>
+                        <div className="grid grid-cols-1 gap-6 mb-8">
+                            {/* Composition Block - Only shows if data exists */}
+                            {product.composition && (
+                                <div className="bg-teal-50/50 rounded-2xl p-5 border border-teal-100">
+                                    <div className="flex items-center gap-3 mb-2 text-teal-700 font-bold">
+                                        <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center">
+                                            <i className="fas fa-flask text-sm"></i>
+                                        </div>
+                                        Composition
+                                    </div>
+                                    <p className="text-gray-700 text-sm ml-11 font-medium">{product.composition}</p>
                                 </div>
                             )}
 
-                            {/* Side Effects */}
+                            {product.usage && (
+                                <div className="bg-blue-50/50 rounded-2xl p-5 border border-blue-100">
+                                    <div className="flex items-center gap-3 mb-2 text-blue-700 font-bold">
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                            <i className="fas fa-pills text-sm"></i>
+                                        </div>
+                                        Usage
+                                    </div>
+                                    <p className="text-gray-700 text-sm ml-11">{product.usage}</p>
+                                </div>
+                            )}
+
                             {product.sideEffects && (
-                                <div className="flex flex-col gap-2">
-                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                        <i className="fas fa-exclamation-triangle text-orange-500"></i> Side Effects
-                                    </h3>
-                                    <p className="text-sm text-gray-700 font-medium bg-white border border-gray-100 p-3 rounded-xl shadow-sm">
-                                        {product.sideEffects}
-                                    </p>
+                                <div className="bg-orange-50/50 rounded-2xl p-5 border border-orange-100">
+                                    <div className="flex items-center gap-3 mb-2 text-orange-700 font-bold">
+                                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                                            <i className="fas fa-exclamation-triangle text-sm"></i>
+                                        </div>
+                                        Side Effects
+                                    </div>
+                                    <p className="text-gray-700 text-sm ml-11">{product.sideEffects}</p>
+                                </div>
+                            )}
+
+                            {product.precautions && product.precautions.length > 0 && (
+                                <div className="bg-red-50/50 rounded-2xl p-5 border border-red-100">
+                                    <div className="flex items-center gap-3 mb-2 text-red-700 font-bold">
+                                        <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                                            <i className="fas fa-shield-alt text-sm"></i>
+                                        </div>
+                                        Precautions
+                                    </div>
+                                    <ul className="text-gray-700 text-sm ml-11 list-disc list-outside pl-4 space-y-1">
+                                        {product.precautions.map((p, i) => (
+                                            <li key={i}>{p}</li>
+                                        ))}
+                                    </ul>
                                 </div>
                             )}
                         </div>
 
-                        {/* Precautions */}
-                        {product.precautions && product.precautions.length > 0 && (
-                            <div className="mb-8">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                    <i className="fas fa-shield-alt text-blue-500"></i> Safety Precautions
-                                </h3>
-                                <div className="grid gap-2">
-                                    {product.precautions.map((precaution, idx) => (
-                                        <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-blue-50/50 border border-blue-100/50">
-                                            <i className="fas fa-check text-blue-500 mt-0.5 text-xs"></i>
-                                            <span className="text-sm text-gray-600 font-medium">{precaution}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Disclaimer */}
-                        <div className="mt-4 bg-yellow-50/70 p-4 rounded-xl border border-yellow-100/50 text-yellow-800 text-xs backdrop-blur-sm flex gap-3 items-start">
-                            <i className="fas fa-info-circle mt-0.5 text-lg"></i>
-                            <div>
-                                <p className="font-bold mb-1">Medical Disclaimer</p>
-                                <p>The information provided is for educational purposes. Please consult our pharmacist or your doctor before using this medication.</p>
-                            </div>
+                        {/* Medical Disclaimer - Beige & Dark Brown with Reduced Density (Opacity) */}
+                        <div className="mt-8 p-5 bg-[#fff8e1]/40 backdrop-blur-md rounded-2xl border border-[#ffe0b2]/60 text-base font-medium text-[#5d4037] leading-relaxed shadow-sm">
+                            <p className="font-bold text-[#3e2723] mb-2 flex items-center gap-2 text-lg">
+                                <i className="fas fa-exclamation-circle text-[#8d6e63]"></i> Medical Disclaimer:
+                            </p>
+                            The information provided is for educational purposes only and does not constitute medical advice. 
+                            Always consult a qualified healthcare professional before starting any medication or treatment. 
+                            New Lucky Pharma is not responsible for any side effects or misuse of products.
                         </div>
                     </div>
 
-                    {/* Sticky Footer Action Bar */}
-                    <div className="border-t border-gray-100 p-4 md:p-6 bg-white/95 backdrop-blur absolute bottom-0 w-full z-20 flex flex-col sm:flex-row gap-4 items-center justify-between shadow-[0_-8px_30px_rgba(0,0,0,0.05)]">
-                        <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <button 
-                                onClick={askAI}
-                                className="flex-1 sm:flex-none text-xs font-bold text-medical-600 bg-medical-50 hover:bg-medical-100 px-4 py-3 rounded-xl transition-colors flex items-center justify-center gap-2 border border-medical-100 group"
-                            >
-                                <i className="fas fa-robot text-lg group-hover:rotate-12 transition-transform"></i> 
-                                <span>Ask AI Pharmacist</span>
-                            </button>
-                        </div>
+                    {/* Footer Actions */}
+                    <div className="p-4 md:p-6 bg-white border-t border-gray-100 shadow-[0_-5px_20px_rgba(0,0,0,0.02)] z-20 flex flex-col sm:flex-row gap-4">
+                        <button 
+                            onClick={onToggleWishlist}
+                            className={`flex-1 py-4 px-6 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 group ${isWishlisted ? 'bg-red-50 text-red-500 border border-red-200 shadow-inner' : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'}`}
+                        >
+                            <i className={`${isWishlisted ? 'fas' : 'far'} fa-heart text-xl transition-transform ${isAnimating ? 'animate-heartbeat' : 'group-hover:scale-110'}`}></i>
+                            <span>{isWishlisted ? 'Saved' : 'Save'}</span>
+                        </button>
 
-                        <div className="flex gap-3 w-full sm:w-auto">
-                            <a 
-                                href="https://wa.me/919798881368" 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="flex-1 sm:flex-none bg-[#25D366] text-white font-bold py-3 px-8 rounded-xl hover:bg-[#20bd5a] transition shadow-lg hover:shadow-green-500/30 flex items-center justify-center gap-2 active:scale-95 transform hover:-translate-y-0.5"
-                            >
-                                <i className="fab fa-whatsapp text-xl"></i> 
-                                <span>Check Availability</span>
-                            </a>
-                        </div>
+                        <button 
+                            onClick={askAI}
+                            className="flex-1 py-4 px-6 rounded-xl font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100 transition-all duration-300 flex items-center justify-center gap-2 group"
+                        >
+                            <i className="fas fa-robot text-xl group-hover:rotate-12 transition-transform"></i>
+                            <span>Ask AI</span>
+                        </button>
+
+                        <a 
+                            href={getWhatsAppLink()} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex-[2] py-4 px-6 rounded-xl font-bold bg-medical-600 text-white hover:bg-medical-700 transition-all duration-300 shadow-lg shadow-medical-500/30 hover:shadow-xl hover:-translate-y-1 flex items-center justify-center gap-2 btn-shine"
+                        >
+                            <i className="fab fa-whatsapp text-2xl"></i>
+                            <span>Check Availability</span>
+                        </a>
                     </div>
                 </div>
             </div>

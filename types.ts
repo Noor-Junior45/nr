@@ -5,6 +5,7 @@ export interface ChatMessage {
     image?: string;
     isUser: boolean;
     timestamp: number;
+    products?: Product[];
 }
 
 export interface Product {
@@ -19,6 +20,7 @@ export interface Product {
     sideEffects?: string;
     precautions?: string[];
     isPrescriptionRequired?: boolean;
+    composition?: string;
 }
 
 export interface ServiceItem {

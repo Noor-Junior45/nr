@@ -1,5 +1,6 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, FunctionDeclaration, Tool } from "@google/genai";
 import { Product } from "../types";
+import { productList } from "../data/products";
 
 // Initialize safely - relies on Vite's define plugin to replace process.env.API_KEY at build time
 const getAIClient = () => {
@@ -42,12 +43,32 @@ GUIDELINES:
 4. IMAGE ANALYSIS:
    - Identify medicines or visible symptoms.
    - Explain uses/remedies clearly.
-5. MANDATORY DISCLAIMER: End *every* medical suggestion with: "Please consult a doctor for serious advice. Stay safe! 💚"
-6. If User ask about location and Time then give this result: 
+5. PRODUCT SEARCH:
+   - If the user asks to "find", "search", "show", "buy" or asks about the "price" or "availability" of a specific medicine, USE THE 'search_medicines' TOOL.
+6. MANDATORY DISCLAIMER: End *every* medical suggestion with: "Please consult a doctor for serious advice. Stay safe! 💚"
+7. If User ask about location and Time then give this result: 
      - LOCATION: New Lucky Pharma, Main Road, Hanwara, Godda, Jharkhand (814154).
      - TIME: Open 7 days a week, MON-SUN: 6:00 am to 12:00 pm & 1:00 pm to 9:00 pm, except Friday: 6:00 am to 12:00 pm & 2:00 pm to 9:00 pm.
 
 Note: You are an AI assistant, not a doctor. Prioritize user safety and well-being.`;
+
+// Tool Definition
+const searchTool: Tool = {
+    functionDeclarations: [{
+        name: "search_medicines",
+        description: "Search for medicines, health products, or remedies in the store inventory.",
+        parameters: {
+            type: Type.OBJECT,
+            properties: {
+                query: {
+                    type: Type.STRING,
+                    description: "The name of the medicine, symptom, or category to search for."
+                }
+            },
+            required: ["query"]
+        }
+    }]
+};
 
 // Helper to clean markdown bold syntax (**) from responses
 const cleanText = (text: string): string => {
@@ -55,10 +76,10 @@ const cleanText = (text: string): string => {
     return text.replace(/\*\*/g, '').trim();
 };
 
-export const getGeminiResponse = async (userMessage: string, imageBase64?: string): Promise<string> => {
+export const getGeminiResponse = async (userMessage: string, imageBase64?: string): Promise<{ text: string, products?: Product[] }> => {
     try {
         const ai = getAIClient();
-        if (!ai) return "I am currently offline. Please check back later.";
+        if (!ai) return { text: "I am currently offline. Please check back later." };
 
         let contents: any = userMessage;
 
@@ -77,20 +98,65 @@ export const getGeminiResponse = async (userMessage: string, imageBase64?: strin
              }
         }
 
+        // 1. First attempt with tools enabled
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: contents,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
+                tools: [searchTool]
             }
         });
 
+        // 2. Check for tool calls
+        const functionCalls = response.functionCalls;
+        
+        if (functionCalls && functionCalls.length > 0) {
+            const call = functionCalls[0];
+            if (call.name === "search_medicines") {
+                const query = call.args['query'] as string;
+                
+                // Perform Hybrid Search (Local First, then AI)
+                const products = await performHybridSearch(query);
+                
+                const resultText = products.length > 0 
+                    ? `I found ${products.length} products matching "${query}" for you. Tap 'View' to see details!`
+                    : `I couldn't find "${query}" in our local inventory, but I can suggest general remedies if you like.`;
+
+                return {
+                    text: resultText,
+                    products: products
+                };
+            }
+        }
+
+        // 3. Standard Text Response
         const text = response.text;
-        return cleanText(text) || "I didn't quite catch that. Could you rephrase?";
+        return { text: cleanText(text) || "I didn't quite catch that. Could you rephrase?" };
+
     } catch (error) {
         console.error("Gemini API Error:", error);
-        return "I'm having trouble connecting to the server. Please consult a pharmacist in person.";
+        return { text: "I'm having trouble connecting to the server. Please consult a pharmacist in person." };
     }
+};
+
+// Hybrid Search: Local List -> AI Search
+const performHybridSearch = async (query: string): Promise<Product[]> => {
+    const lowerQuery = query.toLowerCase();
+    
+    // 1. Search Local Data
+    const localResults = productList.filter(p => 
+        p.name.toLowerCase().includes(lowerQuery) || 
+        p.description.toLowerCase().includes(lowerQuery) ||
+        p.category?.toLowerCase().includes(lowerQuery)
+    );
+
+    if (localResults.length > 0) {
+        return localResults.slice(0, 4); // Limit to 4
+    }
+
+    // 2. Fallback to AI Search if no local matches
+    return await searchProducts(query);
 };
 
 export const translateText = async (text: string): Promise<string> => {
@@ -130,11 +196,10 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
             6. Match first result with user queries.
 
             Example:
-            - Query: "Fever" -> Name: "Dolo 650", "Crocin Advance", "Calpol 500".
-            - Query: "Gas" -> Name: "Eno", "Digene", "Pan 40".
-            - Query: "Cough" -> Name: "Benadryl", "Ascoril LS", "Grilinctus".
+            - Query: "Fever" -> Name: "Dolo 650", Composition: "Paracetamol (650mg)".
+            - Query: "Gas" -> Name: "Pan 40", Composition: "Pantoprazole (40mg)".
             
-            Provide: Category (e.g., Pain Relief), Usage (short instruction), Side Effects, Precautions, and Prescription Status.`,
+            Provide: Category, Composition (Active Ingredients with strength), Usage, Side Effects, Precautions, and Prescription Status.`,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -145,6 +210,7 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
                             name: { type: Type.STRING },
                             description: { type: Type.STRING },
                             category: { type: Type.STRING },
+                            composition: { type: Type.STRING },
                             usage: { type: Type.STRING },
                             sideEffects: { type: Type.STRING },
                             precautions: { 
@@ -153,7 +219,7 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
                             },
                             isPrescriptionRequired: { type: Type.BOOLEAN }
                         },
-                        required: ["name", "description", "category", "usage", "sideEffects", "precautions", "isPrescriptionRequired"]
+                        required: ["name", "description", "category", "composition", "usage", "sideEffects", "precautions", "isPrescriptionRequired"]
                     }
                 }
             }
@@ -173,13 +239,14 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
         
         // Transform the AI response to match our Product type
         return parsedData.map((item: any, index: number) => ({
-            id: Date.now() + index, // Unique ID
+            id: Date.now() + index + 100000, // Unique ID offset to avoid collisions with local IDs
             name: item.name,
             description: item.description,
             // Use Pollinations AI to generate a relevant image based on the product name
             image: `https://image.pollinations.ai/prompt/medicine%20${encodeURIComponent(item.name)}%20product%20packaging%20white%20background?width=400&height=400&nologo=true`,
             delay: `reveal-delay-${(index * 100) % 400}`,
             category: item.category,
+            composition: item.composition,
             usage: item.usage,
             sideEffects: item.sideEffects,
             precautions: item.precautions,

@@ -2,8 +2,8 @@ import React from 'react';
 
 const Hero: React.FC = () => {
     return (
-        // Reduced depth: from-teal-100 (was 200) via-green-50 (was emerald-100)
-        <section id="home" className="pt-24 pb-12 md:pt-40 md:pb-24 overflow-hidden scroll-mt-24 relative z-0 bg-gradient-to-b from-teal-100 via-green-50 to-white">
+        // Increased length: pt-40 pb-24 md:pt-56 md:pb-48
+        <section id="home" className="pt-40 pb-24 md:pt-56 md:pb-48 overflow-hidden scroll-mt-24 relative z-0 bg-gradient-to-b from-teal-100 via-green-50 to-white">
             
             {/* Local Animated Blobs for Hero Section */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none opacity-50">

@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import AdSense from './AdSense';
 
 const HealthTips: React.FC = () => {
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    // Ensure video plays automatically
+    useEffect(() => {
+        if (videoRef.current) {
+            videoRef.current.play().catch(error => {
+                console.log("Autoplay prevented:", error);
+            });
+        }
+    }, []);
+
     const tips = [
         {
             icon: "fa-tint",
@@ -30,11 +41,31 @@ const HealthTips: React.FC = () => {
     ];
 
     return (
-        // Added Warm Gradient: White -> Orange-50/50 -> White
-        <section id="health-tips" className="py-16 scroll-mt-24 bg-gradient-to-b from-white via-orange-50/50 to-white">
-            <div className="container mx-auto px-4">
+        <section id="health-tips" className="relative py-16 scroll-mt-24 overflow-hidden">
+            
+            {/* Background Video Layer */}
+            <video 
+                ref={videoRef}
+                className="absolute top-0 left-0 w-full h-full object-cover z-0"
+                autoPlay 
+                muted 
+                loop 
+                playsInline
+                poster="https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=2070&auto=format&fit=crop"
+            >
+                {/* Nature/Wellness Video: Sunlight through green leaves */}
+                <source src="https://videos.pexels.com/video-files/2863968/2863968-hd_1920_1080_30fps.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+            </video>
+
+            {/* White Overlay to ensure text readability over the video */}
+            {/* Using 85% opacity white to let the movement show through subtly without making text hard to read */}
+            <div className="absolute inset-0 bg-white/85 backdrop-blur-[2px] z-0"></div>
+
+            {/* Content Container - z-10 puts it above the video/overlay */}
+            <div className="container mx-auto px-4 relative z-10">
                 <div className="text-center mb-12 reveal">
-                    <span className="inline-block py-1 px-3 rounded-full bg-medical-50 text-medical-600 text-sm font-bold shadow-sm mb-4 border border-medical-100">
+                    <span className="inline-block py-1 px-3 rounded-full bg-white/60 backdrop-blur-md text-medical-700 text-sm font-bold shadow-sm mb-4 border border-medical-100">
                         <i className="fas fa-heartbeat mr-2"></i>Wellness Corner
                     </span>
                     <h2 className="text-3xl font-bold text-gray-900 mb-4 drop-shadow-sm">Daily Health Tips</h2>
@@ -43,7 +74,7 @@ const HealthTips: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {tips.map((tip, index) => (
-                        <div key={index} className={`reveal reveal-delay-${(index + 1) * 100} bg-white/80 backdrop-blur-sm border border-white/60 p-6 rounded-3xl hover-lift-smooth group transition-all duration-300 relative overflow-hidden hover:bg-white hover:border-medical-100 hover:shadow-lg`}>
+                        <div key={index} className={`reveal reveal-delay-${(index + 1) * 100} bg-white/90 backdrop-blur-md border border-white/60 p-6 rounded-3xl hover-lift-smooth group transition-all duration-300 relative overflow-hidden hover:bg-white hover:border-medical-200 hover:shadow-xl shadow-sm`}>
                             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${tip.color} group-hover:scale-110 transition-transform duration-300 shadow-sm relative z-10 border border-white/40`}>
                                 <i className={`fas ${tip.icon} text-2xl`}></i>
                             </div>
@@ -59,7 +90,7 @@ const HealthTips: React.FC = () => {
                 </div>
                 
                 <div className="mt-10 text-center reveal reveal-delay-400">
-                    <div className="inline-flex items-center gap-2 p-4 bg-yellow-50 rounded-2xl border border-yellow-100 text-yellow-800 text-sm font-medium shadow-sm">
+                    <div className="inline-flex items-center gap-2 p-4 bg-yellow-50/90 backdrop-blur-sm rounded-2xl border border-yellow-100 text-yellow-800 text-sm font-medium shadow-sm hover:shadow-md transition-shadow">
                         <i className="fas fa-lightbulb text-yellow-500 text-lg"></i>
                         <span>Ask our <strong>AI Pharmacist</strong> for personalized health tips!</span>
                     </div>
@@ -67,7 +98,7 @@ const HealthTips: React.FC = () => {
 
                 {/* Second Ad Unit */}
                 <div className="reveal mt-12">
-                    <AdSense slot="0987654321" />
+                    <AdSense slot="0987654321" className="bg-white/50 backdrop-blur-md" />
                 </div>
             </div>
         </section>

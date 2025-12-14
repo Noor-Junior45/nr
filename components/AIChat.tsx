@@ -1,11 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getGeminiResponse, translateText } from '../services/geminiService';
-import { ChatMessage } from '../types';
+import { ChatMessage, Product } from '../types';
+import { ProductCardImage } from './ProductCardImage';
 
 // Moved outside component to prevent recreation and scope issues
-const WELCOME_MSG = "Hello! 👋 I'm your AI Pharmacist assistant. \n\nAsk me about: \n💊 Medicine uses \n🤒 Common symptoms \n🌿 Home remedies \n📷 Upload a photo of a medicine or prescription for help! \n\nNote: I am an AI, not a doctor. Please consult a professional for serious advice.";
+const WELCOME_MSG = "Hello! 👋 I'm your AI Pharmacist assistant. \n\nAsk me about: \n💊 Medicine uses \n🤒 Common symptoms \n🌿 Home remedies \n🔍 Find specific medicines (e.g. 'Find Dolo 650') \n\nNote: I am an AI, not a doctor. Please consult a professional for serious advice.";
 
-const AIChat: React.FC = () => {
+interface AIChatProps {
+    onViewProduct?: (product: Product) => void;
+}
+
+const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isConfirmingClear, setIsConfirmingClear] = useState(false);
     
@@ -45,7 +50,7 @@ const AIChat: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Quick suggestions
-    const suggestions = ["Medicine for headache", "Fever dosage?", "Pet dard upay", "Sardi khaasi"];
+    const suggestions = ["Medicine for headache", "Price of Dolo?", "Pet dard upay", "Find cough syrup"];
 
     // Sync ref and handle unread state
     useEffect(() => {
@@ -195,19 +200,19 @@ const AIChat: React.FC = () => {
         setMessages(prev => [...prev, newMessage]);
         setIsLoading(true);
 
-        const aiResponseText = await getGeminiResponse(text);
+        const aiResponse = await getGeminiResponse(text);
 
         const aiMessage: ChatMessage = {
             id: (Date.now() + 1).toString(),
-            text: aiResponseText,
+            text: aiResponse.text,
             isUser: false,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            products: aiResponse.products // Attach products if found
         };
 
         setMessages(prev => [...prev, aiMessage]);
         setIsLoading(false);
 
-        // If user has closed the chat while waiting, show the notification dot
         if (!isOpenRef.current) {
             setHasUnread(true);
         }
@@ -237,19 +242,19 @@ const AIChat: React.FC = () => {
         if (fileInputRef.current) fileInputRef.current.value = '';
         setIsLoading(true);
 
-        const aiResponseText = await getGeminiResponse(userText, userImage || undefined);
+        const aiResponse = await getGeminiResponse(userText, userImage || undefined);
 
         const aiMessage: ChatMessage = {
             id: (Date.now() + 1).toString(),
-            text: aiResponseText,
+            text: aiResponse.text,
             isUser: false,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            products: aiResponse.products // Attach products if found
         };
 
         setMessages(prev => [...prev, aiMessage]);
         setIsLoading(false);
 
-        // If user has closed the chat while waiting, show the notification dot
         if (!isOpenRef.current) {
             setHasUnread(true);
         }
@@ -346,7 +351,7 @@ const AIChat: React.FC = () => {
                                         </div>
 
                                         {/* Message Bubble - Solid Colors */}
-                                        <div className={`flex flex-col ${msg.isUser ? 'items-end' : 'items-start'} max-w-[80%]`}>
+                                        <div className={`flex flex-col ${msg.isUser ? 'items-end' : 'items-start'} max-w-[85%]`}>
                                             <div className={`
                                                 p-4 rounded-2xl shadow-sm text-sm leading-relaxed relative border
                                                 ${msg.isUser 
@@ -363,6 +368,31 @@ const AIChat: React.FC = () => {
                                                 <div className="whitespace-pre-wrap">{msg.text}</div>
                                             </div>
                                             
+                                            {/* Products Carousel - Rendered ONLY if products exist */}
+                                            {msg.products && msg.products.length > 0 && (
+                                                <div className="mt-3 w-full -ml-1">
+                                                    <div className="flex gap-3 overflow-x-auto pb-4 custom-scrollbar snap-x px-1">
+                                                        {msg.products.map(product => (
+                                                            <div key={product.id} className="min-w-[160px] w-[160px] bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden snap-start flex-shrink-0 flex flex-col">
+                                                                <div className="h-28 bg-gray-50 relative">
+                                                                    <ProductCardImage src={product.image} alt={product.name} />
+                                                                </div>
+                                                                <div className="p-3 flex flex-col flex-grow">
+                                                                    <h4 className="text-xs font-bold text-gray-800 line-clamp-1 mb-1">{product.name}</h4>
+                                                                    <p className="text-[10px] text-gray-500 line-clamp-2 mb-2 flex-grow">{product.description}</p>
+                                                                    <button 
+                                                                        onClick={() => onViewProduct && onViewProduct(product)}
+                                                                        className="w-full bg-medical-50 text-medical-700 hover:bg-medical-600 hover:text-white text-xs font-bold py-1.5 rounded-lg transition-colors border border-medical-100"
+                                                                    >
+                                                                        View Details
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Metadata & Actions */}
                                             <div className="flex items-center gap-2 mt-1 px-1">
                                                 <span className="text-[10px] text-gray-400 font-medium">

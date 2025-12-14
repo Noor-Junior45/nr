@@ -17,9 +17,6 @@
       gtag('config', 'G-QWTGZW86NL');
     </script>
 
-    <!-- Google Funding Choices / Ad Blocking Recovery -->
-    <script async src="https://fundingchoicesmessages.google.com/i/pub-5865716270182311?ers=1" crossorigin="anonymous"></script><script>(function() {function signalGooglefcPresent() {if (!window.frames['googlefcPresent']) {if (document.body) {const iframe = document.createElement('iframe'); iframe.style = 'width: 0; height: 0; border: none; z-index: -1000; left: -1000px; top: -1000px;'; iframe.style.display = 'none'; iframe.name = 'googlefcPresent'; document.body.appendChild(iframe);} else {setTimeout(signalGooglefcPresent, 0);}}}signalGooglefcPresent();})();</script>
-    
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -263,24 +260,25 @@
   <body class="font-sans overflow-x-hidden antialiased selection:bg-teal-500 selection:text-white">
     <div id="root"></div>
     
-    <!-- Google AdSense Script - Moved to body as requested -->
+    <!-- Google AdSense Script -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5865716270182311"
      crossorigin="anonymous"></script>
 
-    <script type="module" src="/index.tsx"></script>
+    <!-- Additional Ad Network Script (WiryTrip) -->
+    <script>
+      (function(xphsa){
+      var d = document,
+          s = d.createElement('script'),
+          l = d.scripts[d.scripts.length - 1];
+      s.settings = xphsa || {};
+      s.src = "\/\/wirytrip.com\/bSX.VGszdTGQl_0lY-WrcR\/leqmR9muQZ\/UAlqkHPpTdY_3tMIj\/YA4zO\/TggTt\/NTjrckykNWj\/gv5\/O\/QF";
+      s.async = true;
+      s.referrerPolicy = 'no-referrer-when-downgrade';
+      l.parentNode.insertBefore(s, l);
+      })({})
+    </script>
 
-<script>
-    (function(xphsa){
-    var d = document,
-        s = d.createElement('script'),
-        l = d.scripts[d.scripts.length - 1];
-    s.settings = xphsa || {};
-    s.src = "\/\/wirytrip.com\/bSX.VGszdTGQl_0lY-WrcR\/leqmR9muQZ\/UAlqkHPpTdY_3tMIj\/YA4zO\/TggTt\/NTjrckykNWj\/gv5\/O\/QF";
-    s.async = true;
-    s.referrerPolicy = 'no-referrer-when-downgrade';
-    l.parentNode.insertBefore(s, l);
-    })({})
-</script>
+    <script type="module" src="/index.tsx"></script>
 
   </body>
 </html>
