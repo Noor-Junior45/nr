@@ -235,21 +235,21 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                 >
                                     <ProductCardImage src={product.image} alt={product.name} />
                                     
-                                    {/* Wishlist Toggle Button (Top-Left) */}
+                                    {/* Wishlist Toggle Button (Top-Left) - Enhanced Animation */}
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             toggleWishlist(product);
                                         }}
-                                        className={`absolute top-3 left-3 z-20 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm transform hover:scale-110 ${
+                                        className={`absolute top-3 left-3 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm transform hover:scale-110 active:scale-75 ${
                                             wishlist.includes(product.id) 
-                                            ? 'bg-red-50 text-red-500 shadow-red-100 border border-red-100' 
-                                            : 'bg-white/90 text-gray-300 hover:text-red-400 border border-gray-100'
+                                            ? 'bg-red-50 text-red-500 shadow-md shadow-red-100 border border-red-200' 
+                                            : 'bg-white/90 text-gray-300 hover:text-red-500 hover:bg-red-50 border border-gray-100'
                                         }`}
                                         title={wishlist.includes(product.id) ? "Remove from Wishlist" : "Add to Wishlist"}
                                         aria-label={wishlist.includes(product.id) ? "Remove from Wishlist" : "Add to Wishlist"}
                                     >
-                                        <i className={`${wishlist.includes(product.id) ? 'fas animate-heartbeat' : 'far'} fa-heart`}></i>
+                                        <i className={`${wishlist.includes(product.id) ? 'fas fa-heart text-red-500' : 'far fa-heart'} text-lg transition-transform duration-300 ${wishlist.includes(product.id) ? 'scale-110' : 'scale-100'}`}></i>
                                     </button>
 
                                     {/* Badges Overlay */}

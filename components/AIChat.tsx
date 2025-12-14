@@ -41,6 +41,25 @@ const AIChat: React.FC = () => {
     // Quick suggestions
     const suggestions = ["Medicine for headache", "Fever dosage?", "Pet dard upay", "Sardi khaasi"];
 
+    // Handle Mobile Back Button / Gesture
+    useEffect(() => {
+        if (isOpen) {
+            // Push a state to history so the back button catches this state instead of leaving the page
+            window.history.pushState(null, '', window.location.href);
+
+            const handlePopState = () => {
+                // If user presses back, close the chat
+                setIsOpen(false);
+            };
+
+            window.addEventListener('popstate', handlePopState);
+
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [isOpen]);
+
     // Save history to local storage whenever messages change
     useEffect(() => {
         if (messages.length > 0) {

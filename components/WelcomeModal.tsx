@@ -42,6 +42,16 @@ const WelcomeModal: React.FC = () => {
         setTimeout(() => setShouldRender(false), 300);
     };
 
+    // Handle Mobile Back Button
+    useEffect(() => {
+        if (isVisible) {
+            window.history.pushState(null, '', window.location.href);
+            const handlePopState = () => handleClose();
+            window.addEventListener('popstate', handlePopState);
+            return () => window.removeEventListener('popstate', handlePopState);
+        }
+    }, [isVisible]);
+
     if (!shouldRender) return null;
 
     return (

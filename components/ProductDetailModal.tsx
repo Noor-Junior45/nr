@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Product } from '../types';
 import { ProductCardImage } from './ProductCardImage';
 
@@ -11,6 +11,14 @@ interface ProductDetailModalProps {
 
 const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClose, isWishlisted, onToggleWishlist }) => {
     
+    // Handle Mobile Back Button
+    useEffect(() => {
+        window.history.pushState(null, '', window.location.href);
+        const handlePopState = () => onClose();
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [onClose]);
+
     // Derived related products (simple logic for now, or passed as prop if needed context)
     // For this isolated component, we might skip related products or strictly pass them. 
     // To keep it simple and reusable, I'll omit the related products section inside the modal 
@@ -90,13 +98,13 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClos
                                 {/* Wishlist in Modal */}
                                 <button
                                     onClick={onToggleWishlist}
-                                    className={`ml-auto sm:hidden w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                                    className={`ml-auto sm:hidden w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-75 shadow-sm ${
                                         isWishlisted
-                                        ? 'bg-red-50 text-red-500' 
-                                        : 'bg-gray-100 text-gray-400'
+                                        ? 'bg-red-50 text-red-500 border border-red-100' 
+                                        : 'bg-gray-100 text-gray-400 hover:text-red-500 hover:bg-red-50'
                                     }`}
                                 >
-                                    <i className={`${isWishlisted ? 'fas animate-heartbeat' : 'far'} fa-heart`}></i>
+                                    <i className={`${isWishlisted ? 'fas fa-heart' : 'far fa-heart'} text-lg`}></i>
                                 </button>
                             </div>
                             <h2 id="modal-title" className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
