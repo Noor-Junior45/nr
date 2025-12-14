@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Product } from '../types';
 import { ProductCardImage } from './ProductCardImage';
 
@@ -11,6 +11,8 @@ interface ProductDetailModalProps {
 
 const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClose, isWishlisted, onToggleWishlist }) => {
     
+    const [isAnimating, setIsAnimating] = useState(false);
+
     // Handle Mobile Back Button
     useEffect(() => {
         window.history.pushState(null, '', window.location.href);
@@ -18,6 +20,15 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClos
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
     }, [onClose]);
+
+    // Trigger animation when added to wishlist
+    useEffect(() => {
+        if (isWishlisted) {
+            setIsAnimating(true);
+            const timer = setTimeout(() => setIsAnimating(false), 300);
+            return () => clearTimeout(timer);
+        }
+    }, [isWishlisted]);
 
     // Derived related products (simple logic for now, or passed as prop if needed context)
     // For this isolated component, we might skip related products or strictly pass them. 
@@ -105,7 +116,7 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClos
                                     }`}
                                     title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
                                 >
-                                    <i className={`${isWishlisted ? 'fas fa-heart text-red-500' : 'far fa-heart'} text-lg transition-transform duration-300 ${isWishlisted ? 'scale-125 drop-shadow-sm' : 'scale-100 group-hover:scale-110'}`}></i>
+                                    <i className={`${isWishlisted ? 'fas fa-heart text-red-500' : 'far fa-heart'} text-lg transition-transform duration-300 ${isAnimating ? 'scale-150' : (isWishlisted ? 'scale-125 drop-shadow-sm' : 'scale-100 group-hover:scale-110')}`}></i>
                                 </button>
                             </div>
                             <h2 id="modal-title" className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
