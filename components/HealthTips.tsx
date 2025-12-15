@@ -1,17 +1,18 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import AdSense from './AdSense';
 
 const HealthTips: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const [videoError, setVideoError] = useState(false);
 
     // Ensure video plays automatically
     useEffect(() => {
-        if (videoRef.current) {
+        if (videoRef.current && !videoError) {
             videoRef.current.play().catch(error => {
-                console.log("Autoplay prevented:", error);
+                 // Silently handle autoplay restrictions
             });
         }
-    }, []);
+    }, [videoError]);
 
     const tips = [
         {
@@ -44,22 +45,31 @@ const HealthTips: React.FC = () => {
         <section id="health-tips" className="relative py-16 scroll-mt-24 overflow-hidden">
             
             {/* Background Video Layer */}
-            <video 
-                ref={videoRef}
-                className="absolute top-0 left-0 w-full h-full object-cover z-0"
-                autoPlay 
-                muted 
-                loop 
-                playsInline
-                poster="https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=2070&auto=format&fit=crop"
-            >
-                {/* Nature/Wellness Video: Sunlight through green leaves */}
-                <source src="https://videos.pexels.com/video-files/2863968/2863968-hd_1920_1080_30fps.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-            </video>
+            {!videoError && (
+                <video 
+                    ref={videoRef}
+                    className="absolute top-0 left-0 w-full h-full object-cover z-0"
+                    autoPlay 
+                    muted 
+                    loop 
+                    playsInline
+                    crossOrigin="anonymous"
+                    poster="https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=2070&auto=format&fit=crop"
+                    onError={() => setVideoError(true)}
+                >
+                    {/* Nature/Wellness Video: Updated Source */}
+                    <source src="https://cdn.pixabay.com/video/2020/05/25/40068-424073385_small.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                </video>
+            )}
+
+            {/* Fallback Background if video fails or loads */}
+            <div 
+                className={`absolute inset-0 bg-cover bg-center z-0 transition-opacity duration-500 ${videoError ? 'opacity-100' : 'opacity-0'}`}
+                style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=2070&auto=format&fit=crop")' }}
+            ></div>
 
             {/* White Overlay to ensure text readability over the video */}
-            {/* Using 85% opacity white to let the movement show through subtly without making text hard to read */}
             <div className="absolute inset-0 bg-white/85 backdrop-blur-[2px] z-0"></div>
 
             {/* Content Container - z-10 puts it above the video/overlay */}

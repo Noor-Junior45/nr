@@ -80,15 +80,16 @@ const SpotlightCard = ({ feature }: { feature: Feature }) => {
 
 const VideoPromo: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const [videoError, setVideoError] = useState(false);
 
     // Ensure video plays even if low power mode tries to stop it
     useEffect(() => {
-        if (videoRef.current) {
+        if (videoRef.current && !videoError) {
             videoRef.current.play().catch(error => {
-                console.log("Autoplay prevented:", error);
+                // Silently handle autoplay restrictions
             });
         }
-    }, []);
+    }, [videoError]);
 
     return (
         // ID "about" for navigation
@@ -98,20 +99,32 @@ const VideoPromo: React.FC = () => {
                BACKGROUND: Running Abstract Video (Green Theme)
             */}
             
-            {/* 1. Video Layer */}
-            <video 
-                ref={videoRef}
-                className="absolute top-0 left-0 w-full h-full object-cover opacity-50"
-                autoPlay 
-                muted 
-                loop 
-                playsInline
-                poster="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop"
-            >
-                {/* Abstract Green Network Lines / Particles "Running" */}
-                <source src="https://videos.pexels.com/video-files/5453622/5453622-uhd_2560_1440_25fps.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-            </video>
+            {/* 1. Video Layer with Error Handling */}
+            {!videoError && (
+                <video 
+                    ref={videoRef}
+                    className="absolute top-0 left-0 w-full h-full object-cover opacity-50"
+                    autoPlay 
+                    muted 
+                    loop 
+                    playsInline
+                    crossOrigin="anonymous"
+                    poster="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop"
+                    onError={() => {
+                        // Fix: Do NOT log the event object 'e' here as it causes "Converting circular structure to JSON" error
+                        setVideoError(true);
+                    }}
+                >
+                    {/* Abstract Green Plexus/Network - Updated Source */}
+                    <source src="https://cdn.pixabay.com/video/2020/04/18/36553-408978132_small.mp4" type="video/mp4" />
+                </video>
+            )}
+
+            {/* Fallback Image Layer (Visible if video fails or acts as base) */}
+            <div 
+                className={`absolute top-0 left-0 w-full h-full bg-cover bg-center transition-opacity duration-500 ${videoError ? 'opacity-50' : 'opacity-0'}`}
+                style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop")' }}
+            ></div>
 
             {/* 2. Gradient Overlay for Text Readability */}
             <div className="absolute inset-0 bg-gradient-to-b from-emerald-950/95 via-emerald-900/80 to-emerald-950/95"></div>

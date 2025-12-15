@@ -42,8 +42,12 @@ const AdSense: React.FC<AdSenseProps> = ({
                 }
                 w.adsbygoogle.push({});
                 setIsAdLoaded(true);
-            } catch (e) {
+            } catch (e: any) {
                 // Squelch errors to prevent "Script error" bubbling up from AdSense internal issues
+                // "Script error." is a generic error from cross-origin scripts (like Google Ads)
+                if (e?.message === 'Script error.' || e?.toString().indexOf('Script error') !== -1) {
+                    return;
+                }
                 console.warn("AdSense push warning:", e);
             }
         };
@@ -53,8 +57,8 @@ const AdSense: React.FC<AdSenseProps> = ({
         let attempts = 0;
         intervalId = setInterval(() => {
             attempts++;
-            // Check if element exists and has width
-            if (adRef.current && adRef.current.offsetWidth > 0) {
+            // Check if element exists and has width and is connected to DOM
+            if (adRef.current && adRef.current.isConnected && adRef.current.offsetWidth > 0) {
                 clearInterval(intervalId);
                 pushAd();
             } else if (attempts > 50) { // Give up after ~5 seconds

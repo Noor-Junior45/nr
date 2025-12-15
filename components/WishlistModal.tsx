@@ -31,7 +31,6 @@ const WishlistModal: React.FC<WishlistModalProps> = ({ isOpen, onClose, wishlist
     const allProducts = [...productList, ...customProducts];
     
     // Filter based on wishlist IDs
-    // Using a map to ensure unique products by ID if there's any potential overlap
     const wishlistItems = allProducts.filter(p => wishlistIds.includes(p.id));
 
     // Generate WhatsApp Message
@@ -43,21 +42,20 @@ const WishlistModal: React.FC<WishlistModalProps> = ({ isOpen, onClose, wishlist
         }
 
         const intro = "Hello New Lucky Pharma, I would like to inquire about the availability of the following items from my wishlist:";
-        // Create a numbered list of product names
         const itemList = wishlistItems.map((item, index) => `${index + 1}. ${item.name}`).join('\n');
         
         const fullMessage = `${intro}\n\n${itemList}`;
         
-        // Encode the message for URL
         return `https://wa.me/${phoneNumber}?text=${encodeURIComponent(fullMessage)}`;
     };
 
+    // Copy List Functionality
     const handleCopyList = async () => {
         if (wishlistItems.length === 0) return;
 
-        const intro = "Inquiry for New Lucky Pharma:";
+        const intro = `Inquiry for New Lucky Pharma (${new Date().toLocaleDateString()}):`;
         const itemList = wishlistItems.map((item, index) => `${index + 1}. ${item.name}`).join('\n');
-        const textToCopy = `${intro}\n${itemList}`;
+        const textToCopy = `${intro}\n\n${itemList}`;
 
         try {
             await navigator.clipboard.writeText(textToCopy);
@@ -135,7 +133,7 @@ const WishlistModal: React.FC<WishlistModalProps> = ({ isOpen, onClose, wishlist
                     <div className="p-4 border-t border-gray-100 bg-white flex gap-3 flex-col sm:flex-row">
                          <button
                             onClick={handleCopyList}
-                            className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-center hover:bg-gray-200 transition flex items-center justify-center gap-2"
+                            className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-center hover:bg-gray-200 transition flex items-center justify-center gap-2 hover:shadow-md border border-transparent hover:border-gray-200"
                         >
                             <i className={`fas ${copyButtonText === "Copied!" ? "fa-check text-green-600" : "fa-copy"}`}></i> 
                             {copyButtonText}
@@ -144,7 +142,7 @@ const WishlistModal: React.FC<WishlistModalProps> = ({ isOpen, onClose, wishlist
                             href={generateWhatsAppLink()} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="flex-[2] bg-medical-600 text-white font-bold py-3 rounded-xl text-center hover:bg-medical-700 transition shadow-lg shadow-medical-500/30 flex items-center justify-center gap-2"
+                            className="flex-[2] bg-medical-600 text-white font-bold py-3 rounded-xl text-center hover:bg-medical-700 transition shadow-lg shadow-medical-500/30 flex items-center justify-center gap-2 btn-shine transform hover:-translate-y-0.5"
                         >
                             <i className="fab fa-whatsapp text-lg"></i> Inquire on WhatsApp
                         </a>
