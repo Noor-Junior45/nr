@@ -81,6 +81,7 @@ const SpotlightCard = ({ feature }: { feature: Feature }) => {
 const VideoPromo: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [videoError, setVideoError] = useState(false);
+    const [videoLoaded, setVideoLoaded] = useState(false);
 
     // Ensure video plays even if low power mode tries to stop it
     useEffect(() => {
@@ -103,25 +104,23 @@ const VideoPromo: React.FC = () => {
             {!videoError && (
                 <video 
                     ref={videoRef}
-                    className="absolute top-0 left-0 w-full h-full object-cover opacity-50"
+                    className="absolute top-0 left-0 w-full h-full object-cover opacity-50 transition-opacity duration-1000"
                     autoPlay 
                     muted 
                     loop 
                     playsInline
                     poster="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop"
-                    onError={() => {
-                        // Fix: Do NOT log the event object 'e' here as it causes "Converting circular structure to JSON" error
-                        setVideoError(true);
-                    }}
+                    onCanPlay={() => setVideoLoaded(true)}
+                    onError={() => setVideoError(true)}
                 >
-                    {/* Abstract Green Tech Background */}
-                    <source src="https://assets.mixkit.co/videos/preview/mixkit-abstract-technology-white-and-green-lines-2035-large.mp4" type="video/mp4" />
+                    {/* Reliable public video URL */}
+                    <source src="https://videos.pexels.com/video-files/3129671/3129671-sd_640_360_25fps.mp4" type="video/mp4" />
                 </video>
             )}
 
-            {/* Fallback Image Layer (Visible if video fails or acts as base) */}
+            {/* Fallback Image Layer (Visible until video loads OR if video fails) */}
             <div 
-                className={`absolute top-0 left-0 w-full h-full bg-cover bg-center transition-opacity duration-500 ${videoError ? 'opacity-50' : 'opacity-0'}`}
+                className={`absolute top-0 left-0 w-full h-full bg-cover bg-center transition-opacity duration-1000 ${videoLoaded && !videoError ? 'opacity-0' : 'opacity-50'}`}
                 style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop")' }}
             ></div>
 

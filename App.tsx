@@ -15,6 +15,7 @@ import WishlistModal from './components/WishlistModal';
 import Toast from './components/Toast';
 import ProductDetailModal from './components/ProductDetailModal';
 import VideoPromo from './components/VideoPromo';
+import AdSense from './components/AdSense';
 import { Product } from './types';
 import { productList } from './data/products';
 
@@ -150,9 +151,14 @@ const App: React.FC = () => {
         {/* About Component Removed - Content merged into VideoPromo */}
         <VideoPromo />
         <Products wishlist={wishlist} toggleWishlist={toggleWishlist} />
+        {/* Google AdSense Banner (After Products) */}
+        <AdSense slot="1234567890" />
         <Services />
         <HealthTips />
         <FAQ />
+        
+        {/* Google AdSense Banner (Autorelaxed - Between FAQ & Contact) */}
+        <AdSense slot="7013153337" format="autorelaxed" className="my-12" />
         
         <Contact />
       </main>

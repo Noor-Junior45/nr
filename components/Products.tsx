@@ -23,6 +23,9 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
     // Quick View State
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
+    // Track which product ID has just been copied/shared
+    const [copiedId, setCopiedId] = useState<number | null>(null);
+
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
             if (e.key === 'Escape') closeQuickView();
@@ -99,6 +102,51 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
         window.dispatchEvent(event);
     };
 
+    const handleShare = async (product: Product, e: React.MouseEvent) => {
+        e.stopPropagation();
+        
+        // Robust URL construction
+        let shareUrl = window.location.href;
+        try {
+            // Validate URL to prevent "Invalid URL" errors
+            new URL(shareUrl);
+        } catch {
+            shareUrl = window.location.origin || "https://newluckypharma.com";
+        }
+        
+        const shareData = {
+            title: `New Lucky Pharma: ${product.name}`,
+            text: `Check out ${product.name} at New Lucky Pharma!\n${product.description}\n`,
+            url: shareUrl
+        };
+
+        const copyToClipboard = async () => {
+            try {
+                await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+                
+                // Visual feedback for clipboard copy
+                setCopiedId(product.id);
+                setTimeout(() => setCopiedId(null), 2000);
+            } catch (err) {
+                console.error('Clipboard failed', err);
+            }
+        };
+
+        try {
+            // Check if native sharing is supported and valid
+            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                await navigator.share(shareData);
+            } else {
+                // Fallback if not supported
+                await copyToClipboard();
+            }
+        } catch (err) {
+            console.warn('Share failed, falling back to clipboard:', err);
+            // Fallback if native share fails (e.g. Invalid URL or User Cancelled)
+            await copyToClipboard();
+        }
+    };
+
     return (
         // Reverted to Medical Green Theme (Emerald/Teal) to match "Old Green Color" request
         // Start: Emerald-100 (Matches About End) -> Via: Medical-100 -> End: Medical-50
@@ -128,7 +176,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                 </div>
 
                 {/* Search Container */}
-                <div className={`transition-all duration-700 ease-in-out flex flex-col items-center relative z-41 ${hasSearched ? 'mt-0 mb-8' : 'mt-6 mb-16'}`}>
+                <div className={`transition-all duration-700 ease-in-out flex flex-col items-center relative z-[41] ${hasSearched ? 'mt-0 mb-8' : 'mt-6 mb-16'}`}>
                     <div className="text-center mb-8 reveal">
                         <h2 className="text-3xl font-bold text-gray-900 mb-4 drop-shadow-sm">Popular Products & Medicines</h2>
                         <p className={`text-gray-700 max-w-2xl mx-auto transition-opacity duration-500 font-medium ${hasSearched ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>
@@ -303,13 +351,28 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                         >
                                             View Details <i className="fas fa-arrow-right ml-1"></i>
                                         </button>
-                                        <button 
-                                            onClick={(e) => askAI(product, e)}
-                                            className="w-8 h-8 rounded-full bg-medical-50 text-medical-600 flex items-center justify-center hover:bg-medical-100 transition-colors"
-                                            title="Ask AI Pharmacist"
-                                        >
-                                            <i className="fas fa-robot text-sm"></i>
-                                        </button>
+
+                                        <div className="flex items-center gap-2">
+                                            <button 
+                                                onClick={(e) => handleShare(product, e)}
+                                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                                                    copiedId === product.id 
+                                                    ? 'bg-green-100 text-green-600' 
+                                                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                                                }`}
+                                                title={copiedId === product.id ? "Copied Link!" : "Share Product"}
+                                            >
+                                                <i className={`fas ${copiedId === product.id ? 'fa-check' : 'fa-share-alt'} text-sm`}></i>
+                                            </button>
+
+                                            <button 
+                                                onClick={(e) => askAI(product, e)}
+                                                className="w-8 h-8 rounded-full bg-medical-50 text-medical-600 flex items-center justify-center hover:bg-medical-100 transition-colors"
+                                                title="Ask AI Pharmacist"
+                                            >
+                                                <i className="fas fa-robot text-sm"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

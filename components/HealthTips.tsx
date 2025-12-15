@@ -3,6 +3,7 @@ import React, { useRef, useEffect, useState } from 'react';
 const HealthTips: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [videoError, setVideoError] = useState(false);
+    const [videoLoaded, setVideoLoaded] = useState(false);
 
     // Ensure video plays automatically
     useEffect(() => {
@@ -47,23 +48,24 @@ const HealthTips: React.FC = () => {
             {!videoError && (
                 <video 
                     ref={videoRef}
-                    className="absolute top-0 left-0 w-full h-full object-cover z-0"
+                    className="absolute top-0 left-0 w-full h-full object-cover z-0 transition-opacity duration-1000"
                     autoPlay 
                     muted 
                     loop 
                     playsInline
                     poster="https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=2070&auto=format&fit=crop"
+                    onCanPlay={() => setVideoLoaded(true)}
                     onError={() => setVideoError(true)}
                 >
-                    {/* Nature/Wellness Video: Updated Source */}
-                    <source src="https://assets.mixkit.co/videos/preview/mixkit-sunlight-through-the-trees-1234-large.mp4" type="video/mp4" />
+                    {/* Using Pexels video (reliable, free, high quality, no expiration) */}
+                    <source src="https://videos.pexels.com/video-files/4434242/4434242-sd_640_360_25fps.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
                 </video>
             )}
 
-            {/* Fallback Background if video fails or loads */}
+            {/* Fallback Background if video fails or is loading */}
             <div 
-                className={`absolute inset-0 bg-cover bg-center z-0 transition-opacity duration-500 ${videoError ? 'opacity-100' : 'opacity-0'}`}
+                className={`absolute inset-0 bg-cover bg-center z-0 transition-opacity duration-1000 ${videoLoaded && !videoError ? 'opacity-0' : 'opacity-100'}`}
                 style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=2070&auto=format&fit=crop")' }}
             ></div>
 

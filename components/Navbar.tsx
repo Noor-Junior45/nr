@@ -57,13 +57,12 @@ const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) =>
                 {/* ROW 1: Logo & Mobile Toggle */}
                 <div className="w-full flex justify-between items-center relative mb-1">
                     <a href="#home" className="flex items-center gap-3 group py-1">
-                        {/* 3D Logo Effect */}
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-medical-500 rounded-full blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-                            <img 
-                                src="https://lh3.googleusercontent.com/a-/ALV-UjW16NO-HcOCgjkAneSgknSZdMMp2TPGJ0qlrjqsiXALg1VuaQ0=s265-w265-h265" 
-                                alt="New Lucky Pharma Logo" 
-                                className="relative h-10 md:h-12 w-auto object-contain rounded group-hover:rotate-12 transition-transform duration-500 shadow-sm z-10"
+                        {/* Logo Image */}
+                        <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-xl shadow-lg overflow-hidden transform group-hover:rotate-6 transition-transform duration-500">
+                             <img 
+                                src="https://lh3.googleusercontent.com/p/AF1QipP_obhC3R1CKSuEqrkc1BUICL9bMcMwif6flFzK=s1360-w1360-h1020-rw" 
+                                alt="New Lucky Pharma Store" 
+                                className="w-full h-full object-cover" 
                             />
                         </div>
                         {/* 3D Text Effect - Updated to Green */}

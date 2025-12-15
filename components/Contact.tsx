@@ -133,16 +133,21 @@ const Contact: React.FC = () => {
                                     <span className="font-bold text-gray-700 text-sm">Cash Accepted</span>
                                 </div>
 
-                                <div className="p-3 bg-white rounded-xl border border-gray-100 hover:border-purple-200 transition duration-300">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Scan & Pay via</p>
-                                    <div className="flex flex-wrap gap-3 items-center">
-                                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Google_Pay_Logo.svg/512px-Google_Pay_Logo.svg.png" alt="Google Pay" className="h-4 object-contain opacity-80 hover:opacity-100 transition hover:scale-110" />
-                                        <div className="h-3 w-px bg-gray-300"></div>
-                                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/PhonePe_Logo.svg/512px-PhonePe_Logo.svg.png" alt="PhonePe" className="h-4 object-contain opacity-80 hover:opacity-100 transition hover:scale-110" />
-                                        <div className="h-3 w-px bg-gray-300"></div>
-                                        <img src="https://assetscdn1.paytm.com/images/catalog/view/310944/1654517453942.png" alt="Paytm" className="h-3 object-contain opacity-80 hover:opacity-100 transition hover:scale-110" />
-                                        <div className="h-3 w-px bg-gray-300"></div>
-                                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/UPI-Logo-vector.svg/512px-UPI-Logo.svg.png" alt="UPI" className="h-4 object-contain opacity-80 hover:opacity-100 transition hover:scale-110" />
+                                <div className="p-4 bg-white rounded-xl border border-gray-100 hover:border-purple-200 transition duration-300">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Scan & Pay via</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-gray-50 rounded-lg p-2 flex items-center justify-center border border-gray-100 hover:bg-gray-100 transition">
+                                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/UPI-Logo-vector.svg/512px-UPI-Logo-vector.svg.png" alt="UPI" className="h-4 object-contain" />
+                                        </div>
+                                        <div className="bg-gray-50 rounded-lg p-2 flex items-center justify-center border border-gray-100 hover:bg-gray-100 transition">
+                                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Google_Pay_Logo.svg/512px-Google_Pay_Logo.svg.png" alt="GPay" className="h-4 object-contain" />
+                                        </div>
+                                        <div className="bg-gray-50 rounded-lg p-2 flex items-center justify-center border border-gray-100 hover:bg-gray-100 transition">
+                                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/PhonePe_Logo.svg/1200px-PhonePe_Logo.svg.png" alt="PhonePe" className="h-5 object-contain" />
+                                        </div>
+                                        <div className="bg-gray-50 rounded-lg p-2 flex items-center justify-center border border-gray-100 hover:bg-gray-100 transition">
+                                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Paytm_Logo_%28standalone%29.svg/512px-Paytm_Logo_%28standalone%29.svg.png" alt="Paytm" className="h-3 object-contain" />
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -26,6 +26,7 @@ export default {
         'gradient-x': 'gradient-x 15s ease infinite',
         'shine': 'shine 3s infinite',
         'heartbeat': 'heartbeat 1.5s ease-in-out 1',
+        'heartbeat-red': 'heartbeatRed 0.5s ease-in-out 1',
         'popup-in': 'popupIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         'slide-up': 'slideInUp 0.3s ease-out forwards',
         'slide-down': 'slideDown 0.8s ease-out forwards',
@@ -33,6 +34,7 @@ export default {
         'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
         'scale-up': 'scaleUp 0.5s ease-out forwards',
         'typing': 'typing 1.4s infinite ease-in-out both',
+        'blob': 'blob 7s infinite',
         'bounce-subtle': 'bounce-subtle 3s infinite',
       },
       keyframes: {
@@ -57,6 +59,10 @@ export default {
         heartbeat: {
           '0%, 100%': { transform: 'scale(1)' },
           '50%': { transform: 'scale(1.05)', boxShadow: '0 0 15px rgba(22, 163, 74, 0.5)' }
+        },
+        heartbeatRed: {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.35)' }
         },
         popupIn: {
           '0%': { opacity: '0', transform: 'scale(0.9) translateY(20px)' },
@@ -85,6 +91,12 @@ export default {
         typing: {
           '0%, 80%, 100%': { transform: 'scale(0)' },
           '40%': { transform: 'scale(1)' }
+        },
+        blob: {
+            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+            '100%': { transform: 'translate(0px, 0px) scale(1)' },
         },
         'bounce-subtle': {
           '0%, 100%': { transform: 'translateY(-5%)' },
