@@ -47,6 +47,7 @@
                         'gradient-x': 'gradient-x 15s ease infinite',
                         'shine': 'shine 3s infinite',
                         'heartbeat': 'heartbeat 1.5s ease-in-out 1',
+                        'heartbeat-red': 'heartbeatRed 0.5s ease-in-out 1',
                         'popup-in': 'popupIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                         'slide-up': 'slideInUp 0.3s ease-out forwards',
                         'slide-down': 'slideDown 0.8s ease-out forwards',
@@ -79,6 +80,10 @@
                         heartbeat: {
                             '0%, 100%': { transform: 'scale(1)' },
                             '50%': { transform: 'scale(1.05)', boxShadow: '0 0 15px rgba(22, 163, 74, 0.5)' }
+                        },
+                        heartbeatRed: {
+                            '0%, 100%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(1.35)' }
                         },
                         popupIn: {
                             '0%': { opacity: '0', transform: 'scale(0.9) translateY(20px)' },
@@ -259,26 +264,6 @@
 </head>
   <body class="font-sans overflow-x-hidden antialiased selection:bg-teal-500 selection:text-white">
     <div id="root"></div>
-    
-    <!-- Google AdSense Script -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5865716270182311"
-     crossorigin="anonymous"></script>
-
-    <!-- Additional Ad Network Script (WiryTrip) -->
-    <script>
-    (function(xphsa){
-    var d = document,
-    s = d.createElement('script'),
-    l = d.scripts[d.scripts.length - 1];
-    s.settings = xphsa || {};
-    s.src = "//wirytrip.com/bSX.VGszdTGQl_0lY-WrcR/leqmR9muQZ/UAlqkHPpTdY_3tMIj/YA4zO/TggTt/NTjrckykNWj/gv5/O/QF";
-    s.async = true;
-    s.referrerPolicy = 'no-referrer-when-downgrade';
-    l.parentNode.insertBefore(s, l);
-    })({})
-    </script>
-
     <script type="module" src="/index.tsx"></script>
-
   </body>
 </html>

@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState } from 'react';
-import AdSense from './AdSense';
 
 const HealthTips: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -53,12 +52,11 @@ const HealthTips: React.FC = () => {
                     muted 
                     loop 
                     playsInline
-                    crossOrigin="anonymous"
                     poster="https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=2070&auto=format&fit=crop"
                     onError={() => setVideoError(true)}
                 >
                     {/* Nature/Wellness Video: Updated Source */}
-                    <source src="https://cdn.pixabay.com/video/2020/05/25/40068-424073385_small.mp4" type="video/mp4" />
+                    <source src="https://assets.mixkit.co/videos/preview/mixkit-sunlight-through-the-trees-1234-large.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
                 </video>
             )}
@@ -104,11 +102,6 @@ const HealthTips: React.FC = () => {
                         <i className="fas fa-lightbulb text-yellow-500 text-lg"></i>
                         <span>Ask our <strong>AI Pharmacist</strong> for personalized health tips!</span>
                     </div>
-                </div>
-
-                {/* Second Ad Unit */}
-                <div className="reveal mt-12">
-                    <AdSense slot="0987654321" className="bg-white/50 backdrop-blur-md" />
                 </div>
             </div>
         </section>

@@ -108,15 +108,14 @@ const VideoPromo: React.FC = () => {
                     muted 
                     loop 
                     playsInline
-                    crossOrigin="anonymous"
                     poster="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop"
                     onError={() => {
                         // Fix: Do NOT log the event object 'e' here as it causes "Converting circular structure to JSON" error
                         setVideoError(true);
                     }}
                 >
-                    {/* Abstract Green Plexus/Network - Updated Source */}
-                    <source src="https://cdn.pixabay.com/video/2020/04/18/36553-408978132_small.mp4" type="video/mp4" />
+                    {/* Abstract Green Tech Background */}
+                    <source src="https://assets.mixkit.co/videos/preview/mixkit-abstract-technology-white-and-green-lines-2035-large.mp4" type="video/mp4" />
                 </video>
             )}
 

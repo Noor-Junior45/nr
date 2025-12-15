@@ -11,7 +11,6 @@ import Footer from './components/Footer';
 import WelcomeModal from './components/WelcomeModal';
 import AIChat from './components/AIChat';
 import BackToTop from './components/BackToTop';
-import AdSense from './components/AdSense';
 import WishlistModal from './components/WishlistModal';
 import Toast from './components/Toast';
 import ProductDetailModal from './components/ProductDetailModal';
@@ -155,14 +154,6 @@ const App: React.FC = () => {
         <HealthTips />
         <FAQ />
         
-        {/* Advertising Box between FAQ and Contact */}
-        <div className="container mx-auto px-4 reveal">
-            <AdSense 
-                slot="7013153337" 
-                format="autorelaxed" 
-            />
-        </div>
-
         <Contact />
       </main>
       <Footer />
