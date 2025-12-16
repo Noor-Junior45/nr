@@ -86,3 +86,12 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(13, 148, 136, 0.8); /* Teal-600 */
 }
+
+/* Horizontal Scrollbar Hide (Amazon Style Nav) */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}

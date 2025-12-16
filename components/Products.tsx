@@ -37,11 +37,11 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        // CRITICAL FIX: Explicitly blur the input to close mobile keyboard and prevent 
-        // focus events from re-triggering the overlay immediately.
+        // Blur input to hide keyboard on mobile
         const inputElement = document.getElementById('product-search-input');
         if (inputElement) inputElement.blur();
         
+        // Return search bar to normal page flow
         setIsFocused(false);
         
         if (!searchQuery.trim()) {
@@ -105,10 +105,8 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
     const handleShare = async (product: Product, e: React.MouseEvent) => {
         e.stopPropagation();
         
-        // Robust URL construction
         let shareUrl = window.location.href;
         try {
-            // Validate URL to prevent "Invalid URL" errors
             new URL(shareUrl);
         } catch {
             shareUrl = window.location.origin || "https://newluckypharma.com";
@@ -123,8 +121,6 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
         const copyToClipboard = async () => {
             try {
                 await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
-                
-                // Visual feedback for clipboard copy
                 setCopiedId(product.id);
                 setTimeout(() => setCopiedId(null), 2000);
             } catch (err) {
@@ -133,149 +129,150 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
         };
 
         try {
-            // Check if native sharing is supported and valid
             if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
                 await navigator.share(shareData);
             } else {
-                // Fallback if not supported
                 await copyToClipboard();
             }
         } catch (err) {
-            console.warn('Share failed, falling back to clipboard:', err);
-            // Fallback if native share fails (e.g. Invalid URL or User Cancelled)
             await copyToClipboard();
         }
     };
 
     return (
-        // Reverted to Medical Green Theme (Emerald/Teal) to match "Old Green Color" request
-        // Start: Emerald-100 (Matches About End) -> Via: Medical-100 -> End: Medical-50
-        <section id="products" className="scroll-mt-24 min-h-[800px] transition-all duration-500 relative py-16 bg-gradient-to-br from-emerald-100 via-medical-100 to-medical-50" aria-label="Products Section">
+        <section id="products" className="scroll-mt-32 min-h-[800px] transition-all duration-500 relative py-16 bg-gradient-to-br from-emerald-100 via-medical-100 to-medical-50" aria-label="Products Section">
             
-            {/* Search Focus Backdrop - Fixed Z-index (40) to be BELOW Navbar (50) */}
+            {/* Search Focus Backdrop - Visible ONLY when focused on MOBILE */}
+            {/* Removed background color to avoid dimming effect, kept z-index to handle click-out */}
             <div 
-                className={`fixed inset-0 bg-white/60 backdrop-blur-sm z-40 transition-all duration-500 ${isFocused ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
+                className={`fixed inset-0 z-[55] transition-opacity duration-300 md:hidden ${isFocused ? 'block' : 'hidden'}`}
                 onClick={() => setIsFocused(false)}
                 aria-hidden="true"
             ></div>
 
-            <div className="container mx-auto px-4">
+            {/* Content Container z-10 */}
+            <div className="container mx-auto px-4 relative z-10">
                 
-                {/* No Delivery Notice Banner */}
-                <div className="glass-panel border-l-4 border-l-orange-500 p-4 mb-8 rounded-r-lg shadow-sm reveal flex items-start md:items-center animate-fade-in relative z-10 bg-white/60">
-                    <div className="flex-shrink-0 text-orange-500">
-                        <i className="fas fa-store-slash text-2xl"></i>
-                    </div>
-                    <div className="ml-4">
-                        <h3 className="text-lg font-bold text-orange-800">Store Pickup Only</h3>
-                        <p className="text-orange-700 text-sm">
-                            We currently <span className="font-bold">do not offer home delivery</span>. Please visit our store in Hanwara to purchase medicines. 
-                            You can check availability via WhatsApp before visiting.
-                        </p>
-                    </div>
+                {/* Section Title - Always visible */}
+                <div className="text-center mb-8 reveal">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-4 drop-shadow-sm">Popular Products & Medicines</h2>
+                    <p className="text-gray-700 max-w-2xl mx-auto font-medium">
+                        We offer a wide range of pharmaceutical products, from daily essentials to specific treatments.
+                    </p>
                 </div>
 
-                {/* Search Container */}
-                <div className={`transition-all duration-700 ease-in-out flex flex-col items-center relative z-[41] ${hasSearched ? 'mt-0 mb-8' : 'mt-6 mb-16'}`}>
-                    <div className="text-center mb-8 reveal">
-                        <h2 className="text-3xl font-bold text-gray-900 mb-4 drop-shadow-sm">Popular Products & Medicines</h2>
-                        <p className={`text-gray-700 max-w-2xl mx-auto transition-opacity duration-500 font-medium ${hasSearched ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>
-                            We offer a wide range of pharmaceutical products, from daily essentials to specific treatments.
-                        </p>
-                    </div>
+                {/* 
+                    Search Container Architecture:
+                    1. Outer Wrapper: Maintains vertical flow.
+                    2. Placeholder: Hidden by default. Shown ONLY on Mobile when Focused to prevent jump.
+                    3. Search Bar: 
+                       - Mobile & Focused: Fixed below navbar (top-28 approx 112px).
+                       - Desktop OR Not Focused: Relative/Static.
+                */}
+                <div className="w-full mb-8 relative z-20">
+                    
+                    {/* Placeholder div to prevent layout shift on mobile when search bar becomes fixed */}
+                    <div className={`w-full h-[88px] md:hidden ${isFocused ? 'block' : 'hidden'}`}></div>
 
                     <div className={`
-                        w-full max-w-2xl transition-all duration-500 ease-out origin-top
-                        ${isFocused
-                            ? 'fixed top-20 left-0 right-0 w-full p-4 md:p-0 z-[60] md:relative md:top-auto md:left-auto md:transform md:scale-110' 
-                            : 'relative hover:scale-[1.01]'}
+                        w-full transition-all duration-300
+                        ${isFocused 
+                            ? 'fixed top-28 left-0 right-0 p-4 bg-white shadow-xl z-[70] border-b border-gray-100 md:shadow-none md:bg-transparent md:static md:p-0 md:z-auto md:border-none' 
+                            : 'relative z-20'
+                        }
                     `}>
-                        <form onSubmit={handleSearch} className={`relative group w-full transition-all duration-300 ${isFocused ? 'shadow-2xl rounded-full' : ''}`} role="search">
-                            <label htmlFor="product-search-input" className="sr-only">Search medicines, products, or symptoms</label>
-                            
-                            {/* Glow Effect - Green/Teal */}
-                            <div className={`absolute inset-0 bg-gradient-to-r from-medical-400 to-teal-400 rounded-full blur-md opacity-30 group-hover:opacity-60 transition duration-500 ${isSearching ? 'animate-pulse' : ''} ${isFocused ? 'opacity-60 blur-lg scale-105' : ''}`}></div>
-                            
-                            <input 
-                                id="product-search-input"
-                                type="text"
-                                enterKeyHint="search"
-                                value={searchQuery}
-                                onFocus={() => setIsFocused(true)}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search medicines, products, or symptoms..." 
-                                className={`w-full bg-white/90 backdrop-blur-md border-2 text-gray-800 text-lg rounded-full py-4 pl-6 pr-24 shadow-lg focus:outline-none transition-all duration-300 relative z-10 placeholder-gray-500 ${isFocused ? 'border-medical-400 shadow-xl bg-white' : 'border-white/50'}`}
-                                aria-label="Search medicines, products, or symptoms"
-                            />
+                        <div className={`
+                            w-full max-w-2xl mx-auto transition-all duration-300
+                            ${isFocused ? 'transform scale-100' : 'hover:scale-[1.01]'}
+                        `}>
+                            <form onSubmit={handleSearch} className={`relative group w-full ${isFocused ? '' : 'shadow-lg rounded-full'}`}>
+                                <label htmlFor="product-search-input" className="sr-only">Search medicines, products, or symptoms</label>
+                                
+                                {/* Glow Effect - Removed blur-md when focused to prevent any bleeding issues */}
+                                <div className={`absolute inset-0 bg-gradient-to-r from-medical-400 to-teal-400 rounded-full blur-md opacity-30 group-hover:opacity-60 transition duration-500 ${isSearching ? 'animate-pulse' : ''} ${isFocused ? 'hidden' : ''}`}></div>
+                                
+                                <input 
+                                    id="product-search-input"
+                                    type="text"
+                                    enterKeyHint="search"
+                                    value={searchQuery}
+                                    onFocus={() => setIsFocused(true)}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Search medicines, products, or symptoms..." 
+                                    className={`w-full bg-white border-2 text-gray-800 text-lg rounded-full py-4 pl-6 pr-24 focus:outline-none transition-all duration-300 relative z-10 placeholder-gray-500 ${isFocused ? 'border-medical-500 shadow-none ring-2 ring-medical-100' : 'border-transparent'}`}
+                                    aria-label="Search medicines, products, or symptoms"
+                                />
 
-                            {/* Visible Cross Button inside Search Bar */}
-                            {searchQuery && (
-                                <button
-                                    type="button"
-                                    onClick={clearSearch}
-                                    className="absolute right-14 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white hover:bg-red-500 bg-gray-100/80 rounded-full w-8 h-8 flex items-center justify-center transition-all z-20 backdrop-blur-sm"
-                                    aria-label="Clear search"
-                                >
-                                    <i className="fas fa-times text-sm"></i>
-                                </button>
-                            )}
-                            
-                            <button 
-                                type="submit"
-                                className="absolute right-2 top-1/2 -translate-y-1/2 bg-medical-600 text-white w-11 h-11 rounded-full flex items-center justify-center hover:bg-medical-700 transition-all z-20 shadow-md group-hover:scale-105 active:scale-95"
-                                aria-label={isSearching ? "Searching..." : "Search"}
-                                disabled={isSearching}
-                            >
-                                {isSearching ? (
-                                    <i className="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                                ) : (
-                                    <i className="fas fa-search" aria-hidden="true"></i>
+                                {/* Clear 'X' Button */}
+                                {searchQuery && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            clearSearch();
+                                        }}
+                                        className="absolute right-14 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white hover:bg-red-500 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center transition-all z-20"
+                                    >
+                                        <i className="fas fa-times text-sm"></i>
+                                    </button>
                                 )}
-                            </button>
-                        </form>
-                        
-                        {isAiResult && !isSearching && (
-                            <div className="text-center mt-2 text-xs text-gray-600 flex items-center justify-center gap-1 animate-slide-up font-medium" role="status">
-                                <i className="fab fa-google text-medical-600" aria-hidden="true"></i>
-                                <span>Results found via Google AI</span>
+
+                                {/* Cancel Button (Mobile Focus Only) */}
+                                {isFocused && !searchQuery && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsFocused(false)}
+                                        className="absolute right-14 top-1/2 -translate-y-1/2 text-gray-500 bg-gray-100 rounded-full px-3 py-1 text-xs font-bold md:hidden z-20"
+                                    >
+                                        Cancel
+                                    </button>
+                                )}
+                                
+                                <button 
+                                    type="submit"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-medical-600 text-white w-11 h-11 rounded-full flex items-center justify-center hover:bg-medical-700 transition-all z-20 shadow-md group-hover:scale-105 active:scale-95"
+                                    disabled={isSearching}
+                                >
+                                    {isSearching ? (
+                                        <i className="fas fa-spinner fa-spin"></i>
+                                    ) : (
+                                        <i className="fas fa-search"></i>
+                                    )}
+                                </button>
+                            </form>
+                            
+                            {/* AI Result Text */}
+                            {isAiResult && !isSearching && (
+                                <div className="flex items-center justify-center gap-2 mt-3 text-xs font-semibold text-gray-500 animate-fade-in">
+                                    <i className="fab fa-google text-lg text-medical-600"></i>
+                                    <span>Results generated by AI</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Back Button */}
+                        {hasSearched && !isFocused && (
+                            <div className="mt-6 flex justify-center animate-fade-in z-10">
+                                <button 
+                                    onClick={clearSearch}
+                                    className="bg-white/90 backdrop-blur-sm text-gray-600 border border-gray-200 hover:bg-white hover:text-medical-600 hover:border-medical-200 px-6 py-2.5 rounded-full shadow-sm hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-semibold text-sm group transform hover:-translate-y-0.5"
+                                >
+                                    <i className="fas fa-arrow-left text-xs"></i> Back to All Products
+                                </button>
                             </div>
                         )}
-                        
-                        {isFocused && (
-                            <button 
-                                onClick={() => setIsFocused(false)}
-                                className="md:hidden absolute -bottom-10 left-1/2 transform -translate-x-1/2 text-gray-600 text-sm font-medium bg-white/90 px-4 py-1 rounded-full shadow-sm animate-fade-in-up"
-                                aria-label="Close search mode"
-                            >
-                                <i className="fas fa-times-circle mr-1" aria-hidden="true"></i> Close
-                            </button>
-                        )}
                     </div>
-                    
-                    {/* Independent Clear Button shown below search bar when results are filtered */}
-                    {hasSearched && (
-                        <div className="mt-6 flex justify-center animate-fade-in z-10 relative">
-                            <button 
-                                onClick={clearSearch}
-                                className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white px-6 py-2 rounded-full shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-bold text-sm transform hover:-translate-y-1"
-                            >
-                                <i className="fas fa-arrow-left"></i> Clear Search & Back to Products
-                            </button>
-                        </div>
-                    )}
                 </div>
 
                 <div 
                     className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 transition-all duration-700 ${isSearching ? 'opacity-50 blur-sm' : 'opacity-100 blur-0'}`}
                     role="region"
-                    aria-label="Search Results"
-                    aria-live="polite"
                 >
                     {displayedProducts.length > 0 ? (
                         displayedProducts.map((product, index) => (
                             <div 
                                 key={product.id} 
-                                className={`glass-card rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden flex flex-col h-full group bg-white border border-medical-100/50 transform hover:-translate-y-2 hover:scale-[1.02] animate-fade-in-up ${isAiResult ? 'border-2 border-indigo-200 ring-2 ring-indigo-50 shadow-indigo-100' : ''}`}
+                                className={`glass-card rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden flex flex-col h-full group bg-white border border-medical-100/50 transform hover:-translate-y-2 hover:scale-[1.02] animate-fade-in-up ${isAiResult ? 'border-indigo-100 ring-2 ring-indigo-50' : ''}`}
                                 style={{ animationDelay: `${(index % 5) * 100}ms` }}
                             >
                                 <div 
@@ -284,7 +281,6 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                 >
                                     <ProductCardImage src={product.image} alt={product.name} />
                                     
-                                    {/* Wishlist Toggle Button (Top-Left) */}
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -295,13 +291,10 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                             ? 'bg-red-50 text-red-500 shadow-md shadow-red-100 border border-red-200 scale-110' 
                                             : 'bg-white/90 text-gray-300 hover:text-red-500 hover:bg-red-50 border border-medical-100 hover:scale-110'
                                         }`}
-                                        title={wishlist.includes(product.id) ? "Remove from Wishlist" : "Add to Wishlist"}
-                                        aria-label={wishlist.includes(product.id) ? "Remove from Wishlist" : "Add to Wishlist"}
                                     >
-                                        <i className={`${wishlist.includes(product.id) ? 'fas fa-heart text-red-500 animate-heartbeat-red' : 'far fa-heart'} text-lg transition-transform duration-300`}></i>
+                                        <i className={`${wishlist.includes(product.id) ? 'fas fa-heart text-red-500 animate-heartbeat-red' : 'far fa-heart'} text-lg`}></i>
                                     </button>
 
-                                    {/* Badges Overlay */}
                                     <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
                                         {isAiResult && (
                                             <span className="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 animate-scale-up">
@@ -309,28 +302,14 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                             </span>
                                         )}
                                         {product.isPrescriptionRequired && (
-                                            <div className="relative group/rx">
-                                                <div className="bg-red-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md border border-red-700 flex items-center gap-1 cursor-help hover:bg-red-700 transition-colors">
-                                                    <i className="fas fa-file-prescription"></i>
-                                                    <span>Requires Rx</span>
-                                                </div>
-                                                
-                                                {/* Tooltip */}
-                                                <div className="absolute top-full right-0 mt-2 w-48 p-3 bg-gray-900/95 backdrop-blur text-white text-xs rounded-xl shadow-xl opacity-0 invisible group-hover/rx:opacity-100 group-hover/rx:visible transition-all duration-300 transform translate-y-2 group-hover/rx:translate-y-0 text-center border border-gray-700 z-50">
-                                                    <div className="font-bold text-red-400 mb-1 flex items-center justify-center gap-1">
-                                                        <i className="fas fa-exclamation-circle"></i> Attention
-                                                    </div>
-                                                    A valid doctor's prescription is required to purchase this medicine.
-                                                    {/* Arrow tip */}
-                                                    <div className="absolute -top-1.5 right-4 w-3 h-3 bg-gray-900/95 border-l border-t border-gray-700 transform rotate-45"></div>
-                                                </div>
+                                            <div className="bg-red-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md border border-red-700 flex items-center gap-1 cursor-help">
+                                                <i className="fas fa-file-prescription"></i> Requires Rx
                                             </div>
                                         )}
                                     </div>
                                     
-                                    {/* Hover Overlay with Buttons */}
                                     <div className="absolute inset-0 bg-white/20 backdrop-blur-[1px] group-hover:backdrop-blur-[2px] transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                        <button className="bg-white/95 text-gray-800 px-5 py-2.5 rounded-full transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 shadow-xl hover:bg-medical-600 hover:text-white font-bold text-sm flex items-center justify-center hover:scale-110 hover:shadow-medical-500/50">
+                                        <button className="bg-white/95 text-gray-800 px-5 py-2.5 rounded-full transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 shadow-xl hover:bg-medical-600 hover:text-white font-bold text-sm flex items-center justify-center hover:scale-110">
                                             <i className="fas fa-eye mr-2"></i> Quick View
                                         </button>
                                     </div>
@@ -360,7 +339,6 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                                     ? 'bg-green-100 text-green-600' 
                                                     : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
                                                 }`}
-                                                title={copiedId === product.id ? "Copied Link!" : "Share Product"}
                                             >
                                                 <i className={`fas ${copiedId === product.id ? 'fa-check' : 'fa-share-alt'} text-sm`}></i>
                                             </button>
@@ -368,7 +346,6 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                             <button 
                                                 onClick={(e) => askAI(product, e)}
                                                 className="w-8 h-8 rounded-full bg-medical-50 text-medical-600 flex items-center justify-center hover:bg-medical-100 transition-colors"
-                                                title="Ask AI Pharmacist"
                                             >
                                                 <i className="fas fa-robot text-sm"></i>
                                             </button>
@@ -386,6 +363,20 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                             <p className="text-gray-500">Try searching for generic terms like "Pain killer" or "Cough syrup"</p>
                         </div>
                     )}
+                </div>
+
+                {/* No Delivery Notice Banner */}
+                <div className="mt-12 glass-panel border-l-4 border-l-orange-500 p-4 rounded-r-lg shadow-sm reveal flex items-start md:items-center animate-fade-in relative z-10 bg-white/60">
+                    <div className="flex-shrink-0 text-orange-500">
+                        <i className="fas fa-store-slash text-2xl"></i>
+                    </div>
+                    <div className="ml-4">
+                        <h3 className="text-lg font-bold text-orange-800">Store Pickup Only</h3>
+                        <p className="text-orange-700 text-sm">
+                            We currently <span className="font-bold">do not offer home delivery</span>. Please visit our store in Hanwara to purchase medicines. 
+                            You can check availability via WhatsApp before visiting.
+                        </p>
+                    </div>
                 </div>
             </div>
 
