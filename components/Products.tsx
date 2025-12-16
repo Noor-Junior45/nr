@@ -26,13 +26,19 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
     // Track which product ID has just been copied/shared
     const [copiedId, setCopiedId] = useState<number | null>(null);
 
+    // Confirmation Dialog State
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
+
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') closeQuickView();
+            if (e.key === 'Escape') {
+                closeQuickView();
+                if (showClearConfirm) setShowClearConfirm(false);
+            }
         };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
-    }, []);
+    }, [showClearConfirm]);
 
     // Effect to handle Deep Linked Search Queries
     useEffect(() => {
@@ -93,13 +99,24 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
         await performSearch(searchQuery);
     };
 
-    const clearSearch = () => {
+    const requestClearSearch = () => {
+        // If results are currently displayed, ask for confirmation
+        if (hasSearched) {
+            setShowClearConfirm(true);
+        } else {
+            // If just typing, clear immediately
+            performClear();
+        }
+    };
+
+    const performClear = () => {
         setSearchQuery('');
         setDisplayedProducts(productList);
         setHasSearched(false);
         setIsAiResult(false);
         setIsSearching(false);
         setIsFocused(false);
+        setShowClearConfirm(false);
         
         // Clear URL param if it exists
         const url = new URL(window.location.href);
@@ -245,9 +262,10 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            clearSearch();
+                                            requestClearSearch();
                                         }}
                                         className="absolute right-14 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white hover:bg-red-500 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center transition-all z-20"
+                                        title="Clear search"
                                     >
                                         <i className="fas fa-times text-sm"></i>
                                     </button>
@@ -290,7 +308,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                         {hasSearched && !isFocused && (
                             <div className="mt-6 flex justify-center animate-fade-in z-10">
                                 <button 
-                                    onClick={clearSearch}
+                                    onClick={requestClearSearch}
                                     className="bg-white/90 backdrop-blur-sm text-gray-600 border border-gray-200 hover:bg-white hover:text-medical-600 hover:border-medical-200 px-6 py-2.5 rounded-full shadow-sm hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-semibold text-sm group transform hover:-translate-y-0.5"
                                 >
                                     <i className="fas fa-arrow-left text-xs"></i> Back to All Products
@@ -428,6 +446,37 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                     isWishlisted={wishlist.includes(selectedProduct.id)}
                     onToggleWishlist={() => toggleWishlist(selectedProduct)}
                 />
+            )}
+            
+            {/* Clear Search Confirmation Dialog */}
+            {showClearConfirm && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-xs w-full animate-popup-in relative overflow-hidden border border-gray-100">
+                        <div className="text-center">
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500 animate-bounce-subtle">
+                                <i className="fas fa-trash-alt text-2xl"></i>
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Clear Search Results?</h3>
+                            <p className="text-gray-600 mb-6 text-sm leading-relaxed">
+                                This will remove your current search results and show all popular products again.
+                            </p>
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => setShowClearConfirm(false)}
+                                    className="flex-1 py-2.5 px-4 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={performClear}
+                                    className="flex-1 py-2.5 px-4 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 transition shadow-lg shadow-red-500/30"
+                                >
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </section>
     );
