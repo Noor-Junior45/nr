@@ -143,15 +143,20 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
             
         const shareUrl = `${origin}/?${queryParam}`;
         
+        // Concise Share Text: Name + Composition (if any)
+        const compositionText = product.composition ? ` (${product.composition})` : '';
+        const shortText = `Check out ${product.name}${compositionText} at New Lucky Pharma`;
+        
         const shareData = {
-            title: `New Lucky Pharma: ${product.name}`,
-            text: `Check out ${product.name} at New Lucky Pharma!\n${product.description}\n`,
+            title: product.name,
+            text: `${shortText}\n`,
             url: shareUrl
         };
 
         const copyToClipboard = async () => {
             try {
-                await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+                // Combine for clipboard as some apps don't support title/text separate
+                await navigator.clipboard.writeText(`${shortText}\n${shareUrl}`);
                 setCopiedId(product.id);
                 setTimeout(() => setCopiedId(null), 2000);
             } catch (err) {
@@ -363,22 +368,26 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                         </button>
 
                                         <div className="flex items-center gap-2">
+                                            {/* Share Button */}
                                             <button 
                                                 onClick={(e) => handleShare(product, e)}
-                                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-sm ${
                                                     copiedId === product.id 
-                                                    ? 'bg-green-100 text-green-600' 
-                                                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                                                    ? 'bg-green-100 text-green-600 border border-green-200' 
+                                                    : 'bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 hover:border-blue-200'
                                                 }`}
+                                                title="Share product"
                                             >
-                                                <i className={`fas ${copiedId === product.id ? 'fa-check' : 'fa-share-alt'} text-sm`}></i>
+                                                <i className={`fas ${copiedId === product.id ? 'fa-check' : 'fa-share-alt'} text-xs`}></i>
                                             </button>
 
+                                            {/* AI Button */}
                                             <button 
                                                 onClick={(e) => askAI(product, e)}
-                                                className="w-8 h-8 rounded-full bg-medical-50 text-medical-600 flex items-center justify-center hover:bg-medical-100 transition-colors"
+                                                className="w-8 h-8 rounded-full bg-medical-50 text-medical-600 flex items-center justify-center hover:bg-medical-100 transition-colors shadow-sm border border-medical-100 hover:border-medical-200"
+                                                title="Ask AI Pharmacist"
                                             >
-                                                <i className="fas fa-robot text-sm"></i>
+                                                <i className="fas fa-robot text-xs"></i>
                                             </button>
                                         </div>
                                     </div>

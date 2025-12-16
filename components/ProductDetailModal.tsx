@@ -7,19 +7,31 @@ interface ProductDetailModalProps {
     onClose: () => void;
     isWishlisted: boolean;
     onToggleWishlist: () => void;
+    preventHistoryPush?: boolean;
 }
 
-const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClose, isWishlisted, onToggleWishlist }) => {
+const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ 
+    product, 
+    onClose, 
+    isWishlisted, 
+    onToggleWishlist,
+    preventHistoryPush = false
+}) => {
     
     const [isAnimating, setIsAnimating] = useState(false);
 
     // Handle Mobile Back Button
     useEffect(() => {
-        window.history.pushState(null, '', window.location.href);
+        // If opened via deep link (preventHistoryPush=true), App.tsx has already set the history stack correctly.
+        // We only push a new state if opened via in-app click.
+        if (!preventHistoryPush) {
+            window.history.pushState(null, '', window.location.href);
+        }
+
         const handlePopState = () => onClose();
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
-    }, [onClose]);
+    }, [onClose, preventHistoryPush]);
 
     // Trigger animation when added to wishlist
     useEffect(() => {

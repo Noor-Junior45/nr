@@ -88,13 +88,13 @@ const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) =>
                             className="relative p-2 group"
                             aria-label="Wishlist"
                         >
-                            <div className="relative">
+                            <div className="relative flex items-center justify-center">
                                 {/* Heart Color: Dark Gray default, Red when active/hover */}
-                                <i className={`fas fa-heart text-2xl transition-all duration-300 ${wishlistCount > 0 ? 'text-red-500 scale-110 drop-shadow-[0_0_8px_rgba(239,68,68,0.3)]' : 'text-gray-400 group-hover:text-red-500'}`}></i>
+                                <i className={`fas fa-heart text-[28px] transition-all duration-300 ${wishlistCount > 0 ? 'text-red-500 drop-shadow-[0_4px_6px_rgba(239,68,68,0.3)] scale-110' : 'text-gray-400 group-hover:text-red-500'}`}></i>
                                 
-                                {/* Badge - Moved further out with -top-3 -right-3 */}
+                                {/* Badge - Outside heart (top-right) with red background */}
                                 {wishlistCount > 0 && (
-                                    <span key={wishlistCount} className="absolute -top-3 -right-3 w-5 h-5 bg-red-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-lg border-2 border-white animate-scale-up">
+                                    <span key={wishlistCount} className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-scale-up shadow-sm min-w-[18px] text-center border-2 border-white">
                                         {wishlistCount}
                                     </span>
                                 )}

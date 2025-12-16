@@ -4,6 +4,12 @@ const HealthTools: React.FC = () => {
     // BMI State
     const [weight, setWeight] = useState<string>('');
     const [height, setHeight] = useState<string>('');
+    const [heightInches, setHeightInches] = useState<string>('');
+    
+    // Unit States
+    const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg');
+    const [heightUnit, setHeightUnit] = useState<'cm' | 'ft'>('cm');
+
     const [bmi, setBmi] = useState<number | null>(null);
     const [bmiCategory, setBmiCategory] = useState<string>('');
 
@@ -14,19 +20,38 @@ const HealthTools: React.FC = () => {
 
     const calculateBMI = (e: React.FormEvent) => {
         e.preventDefault();
-        const w = parseFloat(weight);
-        const h = parseFloat(height); // Assuming CM for simplicity in this demo, or add a toggle
+        let w = parseFloat(weight);
+        let h = parseFloat(height);
+        let h_in = parseFloat(heightInches || '0');
         
         if (w > 0 && h > 0) {
-            // BMI = kg / m^2
-            const heightInMeters = h / 100;
-            const calculatedBmi = w / (heightInMeters * heightInMeters);
-            setBmi(parseFloat(calculatedBmi.toFixed(1)));
+            // Convert Weight to kg if lbs
+            let weightInKg = w;
+            if (weightUnit === 'lbs') {
+                weightInKg = w * 0.453592;
+            }
 
-            if (calculatedBmi < 18.5) setBmiCategory('Underweight');
-            else if (calculatedBmi < 24.9) setBmiCategory('Healthy');
-            else if (calculatedBmi < 29.9) setBmiCategory('Overweight');
-            else setBmiCategory('Obese');
+            // Convert Height to meters
+            let heightInMeters = 0;
+            if (heightUnit === 'cm') {
+                heightInMeters = h / 100;
+            } else {
+                // Feet to Inches then to Meters
+                // 1 ft = 12 inches
+                // 1 inch = 0.0254 meters
+                const totalInches = (h * 12) + h_in;
+                heightInMeters = totalInches * 0.0254;
+            }
+
+            if (heightInMeters > 0) {
+                const calculatedBmi = weightInKg / (heightInMeters * heightInMeters);
+                setBmi(parseFloat(calculatedBmi.toFixed(1)));
+
+                if (calculatedBmi < 18.5) setBmiCategory('Underweight');
+                else if (calculatedBmi < 24.9) setBmiCategory('Healthy');
+                else if (calculatedBmi < 29.9) setBmiCategory('Overweight');
+                else setBmiCategory('Obese');
+            }
         }
     };
 
@@ -34,8 +59,7 @@ const HealthTools: React.FC = () => {
         e.preventDefault();
         const w = parseFloat(waterWeight);
         if (w > 0) {
-            // Standard recommendation: ~33ml per kg (approx half of body weight in ounces)
-            // Range usually 30-35ml/kg. 33ml is a safe standard baseline.
+            // Standard recommendation: ~33ml per kg
             const liters = (w * 0.033).toFixed(1);
             setWaterNeed(parseFloat(liters));
             setShowWaterAnim(true);
@@ -56,10 +80,13 @@ const HealthTools: React.FC = () => {
     const askAIAboutHealth = () => {
         if (!bmi || !weight || !height) return;
 
+        const heightDisplay = heightUnit === 'ft' ? `${height}ft ${heightInches}in` : `${height}cm`;
+        const weightDisplay = `${weight}${weightUnit}`;
+
         const query = `I just calculated my BMI using your health tool. 
         My Stats:
-        - Weight: ${weight} kg
-        - Height: ${height} cm
+        - Weight: ${weightDisplay}
+        - Height: ${heightDisplay}
         - BMI: ${bmi} (${bmiCategory})
         
         Can you provide a personalized health plan to help me maintain or improve my weight? Please include dietary tips and simple exercises.`;
@@ -113,8 +140,27 @@ const HealthTools: React.FC = () => {
 
                         <form onSubmit={calculateBMI} className="space-y-6">
                             <div className="grid grid-cols-2 gap-6">
+                                {/* Weight Input */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-blue-400 uppercase tracking-wider ml-1">Weight (kg)</label>
+                                    <div className="flex justify-between items-center px-1">
+                                        <label className="text-xs font-bold text-blue-400 uppercase tracking-wider">Weight</label>
+                                        <div className="flex bg-blue-100/50 rounded-lg p-0.5 gap-0.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => setWeightUnit('kg')}
+                                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${weightUnit === 'kg' ? 'bg-white text-blue-600 shadow-sm' : 'text-blue-400 hover:text-blue-500'}`}
+                                            >
+                                                KG
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setWeightUnit('lbs')}
+                                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${weightUnit === 'lbs' ? 'bg-white text-blue-600 shadow-sm' : 'text-blue-400 hover:text-blue-500'}`}
+                                            >
+                                                LBS
+                                            </button>
+                                        </div>
+                                    </div>
                                     <div className="relative group/input">
                                         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 text-lg pointer-events-none group-focus-within/input:text-blue-400 transition-colors">
                                             <i className="fas fa-weight"></i>
@@ -124,24 +170,68 @@ const HealthTools: React.FC = () => {
                                             value={weight}
                                             onChange={(e) => setWeight(e.target.value)}
                                             className="w-full bg-white border border-blue-100 rounded-2xl pl-12 pr-4 py-4 focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-300 font-bold text-gray-800 text-lg transition-all shadow-sm group-hover/input:border-blue-200"
-                                            placeholder="0"
+                                            placeholder={weightUnit === 'kg' ? "0" : "0"}
                                         />
                                     </div>
                                 </div>
+
+                                {/* Height Input */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-blue-400 uppercase tracking-wider ml-1">Height (cm)</label>
-                                    <div className="relative group/input">
-                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 text-lg pointer-events-none group-focus-within/input:text-blue-400 transition-colors">
-                                            <i className="fas fa-ruler-vertical"></i>
+                                    <div className="flex justify-between items-center px-1">
+                                        <label className="text-xs font-bold text-blue-400 uppercase tracking-wider">Height</label>
+                                        <div className="flex bg-blue-100/50 rounded-lg p-0.5 gap-0.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => setHeightUnit('cm')}
+                                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${heightUnit === 'cm' ? 'bg-white text-blue-600 shadow-sm' : 'text-blue-400 hover:text-blue-500'}`}
+                                            >
+                                                CM
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setHeightUnit('ft')}
+                                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${heightUnit === 'ft' ? 'bg-white text-blue-600 shadow-sm' : 'text-blue-400 hover:text-blue-500'}`}
+                                            >
+                                                FT
+                                            </button>
                                         </div>
-                                        <input 
-                                            type="number" 
-                                            value={height}
-                                            onChange={(e) => setHeight(e.target.value)}
-                                            className="w-full bg-white border border-blue-100 rounded-2xl pl-12 pr-4 py-4 focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-300 font-bold text-gray-800 text-lg transition-all shadow-sm group-hover/input:border-blue-200"
-                                            placeholder="0"
-                                        />
                                     </div>
+                                    
+                                    {heightUnit === 'cm' ? (
+                                        <div className="relative group/input">
+                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 text-lg pointer-events-none group-focus-within/input:text-blue-400 transition-colors">
+                                                <i className="fas fa-ruler-vertical"></i>
+                                            </div>
+                                            <input 
+                                                type="number" 
+                                                value={height}
+                                                onChange={(e) => setHeight(e.target.value)}
+                                                className="w-full bg-white border border-blue-100 rounded-2xl pl-12 pr-4 py-4 focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-300 font-bold text-gray-800 text-lg transition-all shadow-sm group-hover/input:border-blue-200"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <div className="relative group/input flex-1">
+                                                <input 
+                                                    type="number" 
+                                                    value={height}
+                                                    onChange={(e) => setHeight(e.target.value)}
+                                                    className="w-full bg-white border border-blue-100 rounded-2xl px-3 py-4 text-center focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-300 font-bold text-gray-800 text-lg transition-all shadow-sm group-hover/input:border-blue-200"
+                                                    placeholder="Ft"
+                                                />
+                                            </div>
+                                            <div className="relative group/input flex-1">
+                                                <input 
+                                                    type="number" 
+                                                    value={heightInches}
+                                                    onChange={(e) => setHeightInches(e.target.value)}
+                                                    className="w-full bg-white border border-blue-100 rounded-2xl px-3 py-4 text-center focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-300 font-bold text-gray-800 text-lg transition-all shadow-sm group-hover/input:border-blue-200"
+                                                    placeholder="In"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <button className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/30 transition-all transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2 border border-blue-400/20">

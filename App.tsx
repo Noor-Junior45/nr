@@ -26,8 +26,9 @@ const App: React.FC = () => {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; visible: boolean } | null>(null);
   
-  // State for product details opened via Wishlist
+  // State for product details opened via Wishlist or Deep Link
   const [viewedProduct, setViewedProduct] = useState<Product | null>(null);
+  const [isDeepLinkOpen, setIsDeepLinkOpen] = useState(false);
 
   // Load wishlist and custom products from local storage
   useEffect(() => {
@@ -57,14 +58,31 @@ const App: React.FC = () => {
           const foundProduct = productList.find(p => p.id === id);
 
           if (foundProduct) {
+              // HISTORY MANIPULATION for Better Navigation
+              // If user opens a link, there is no "back" to home.
+              // We inject "Home" into history before showing the product.
+              const currentUrl = window.location.href;
+              const homeUrl = window.location.pathname; // e.g. "/"
+              
+              // 1. Replace current state with Home (so bottom of stack is Home)
+              window.history.replaceState(null, '', homeUrl);
+              
+              // 2. Push the Product URL on top (so current view is Product)
+              window.history.pushState(null, '', currentUrl);
+
               // Delay slightly to ensure app is fully mounted and ready
               setTimeout(() => {
+                  setIsDeepLinkOpen(true);
                   setViewedProduct(foundProduct);
-                  // Optional: Clear URL? Keeping it allows refresh to stay on product.
-              }, 500);
+              }, 100);
           }
       }
   }, []);
+
+  const closeProductModal = () => {
+      setViewedProduct(null);
+      setIsDeepLinkOpen(false);
+  };
 
   const showToast = (message: string) => {
       setToast({ message, visible: true });
@@ -201,13 +219,14 @@ const App: React.FC = () => {
           onProductClick={(product) => setViewedProduct(product)}
       />
 
-      {/* Detail Modal triggered from Wishlist or Chat */}
+      {/* Detail Modal triggered from Wishlist, Chat, or Deep Link */}
       {viewedProduct && (
           <ProductDetailModal 
               product={viewedProduct}
-              onClose={() => setViewedProduct(null)}
+              onClose={closeProductModal}
               isWishlisted={wishlist.includes(viewedProduct.id)}
               onToggleWishlist={() => toggleWishlist(viewedProduct)}
+              preventHistoryPush={isDeepLinkOpen}
           />
       )}
       
