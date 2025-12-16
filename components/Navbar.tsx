@@ -72,8 +72,8 @@ const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) =>
                             />
                         </div>
                         <div className="flex flex-col justify-center h-10">
-                            {/* Changed to font-semibold and text-medical-600 for brighter green */}
-                            <span className="font-semibold text-lg leading-none tracking-tight text-medical-600 group-hover:text-medical-700 transition-colors">
+                            {/* Changed to font-bold and text-2xl md:text-3xl for larger size */}
+                            <span className="font-bold text-2xl md:text-3xl leading-none tracking-tight text-medical-600 group-hover:text-medical-700 transition-colors">
                                 New Lucky Pharma
                             </span>
                         </div>
@@ -91,9 +91,9 @@ const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) =>
                                 {/* Heart Color: Dark Gray default, Red when active/hover */}
                                 <i className={`fas fa-heart text-2xl transition-all duration-300 ${wishlistCount > 0 ? 'text-red-500 scale-110 drop-shadow-[0_0_8px_rgba(239,68,68,0.3)]' : 'text-gray-400 group-hover:text-red-500'}`}></i>
                                 
-                                {/* Badge */}
+                                {/* Badge - Moved further out with -top-3 -right-3 */}
                                 {wishlistCount > 0 && (
-                                    <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-lg border-2 border-white animate-scale-up">
+                                    <span className="absolute -top-3 -right-3 w-5 h-5 bg-red-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-lg border-2 border-white animate-scale-up">
                                         {wishlistCount}
                                     </span>
                                 )}

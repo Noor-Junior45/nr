@@ -420,15 +420,39 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                 </React.Fragment>
                             );
                         })}
+                        
+                        {/* Enhanced Loading State */}
                         {isLoading && (
-                            <div className="flex items-end gap-3 animate-slide-up">
-                                <div className="w-11 h-11 rounded-full bg-white border-2 border-gray-100 flex items-center justify-center flex-shrink-0 shadow-sm">
-                                    <i className="fas fa-robot text-medical-600 text-2xl"></i>
+                            <div className="flex items-end gap-3 animate-slide-up my-4">
+                                {/* Pulsing Avatar */}
+                                <div className="relative w-11 h-11 flex-shrink-0">
+                                    <div className="absolute inset-0 bg-medical-500 rounded-full animate-ping opacity-20 duration-1000"></div>
+                                    <div className="relative w-full h-full rounded-full bg-gradient-to-br from-white to-gray-50 border-2 border-medical-100 flex items-center justify-center shadow-md z-10">
+                                        <i className="fas fa-robot text-medical-600 text-2xl animate-[bounce-subtle_2s_infinite]"></i>
+                                    </div>
                                 </div>
-                                <div className="bg-white p-4 rounded-2xl rounded-bl-none shadow-sm border border-gray-200 flex gap-1 items-center h-12">
-                                    <div className="w-2 h-2 bg-medical-400 rounded-full animate-bounce"></div>
-                                    <div className="w-2 h-2 bg-medical-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                    <div className="w-2 h-2 bg-medical-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                
+                                {/* Processing Indicator Bubble */}
+                                <div className="bg-white px-5 py-3 rounded-2xl rounded-bl-none shadow-md border border-gray-100 flex flex-col gap-2 min-w-[160px] relative overflow-hidden">
+                                    <div className="flex items-center gap-2 relative z-10">
+                                        <i className="fas fa-sparkles text-yellow-400 animate-pulse text-sm"></i>
+                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                            Thinking...
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden relative z-10">
+                                        <div 
+                                            className="absolute top-0 h-full w-2/3 bg-gradient-to-r from-medical-400 to-teal-400 rounded-full"
+                                            style={{ 
+                                                animation: 'shine 1.5s infinite linear',
+                                                left: '-75%'
+                                            }}
+                                        ></div>
+                                    </div>
+                                    
+                                    {/* Subtle background glow */}
+                                    <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-medical-50 rounded-full blur-xl z-0"></div>
                                 </div>
                             </div>
                         )}
