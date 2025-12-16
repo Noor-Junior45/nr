@@ -10,50 +10,49 @@ const WelcomeModal: React.FC = () => {
     const [isVisible, setIsVisible] = useState(false);
     const [shouldRender, setShouldRender] = useState(false);
 
+    const showModal = () => {
+        setShouldRender(true);
+        setTimeout(() => setIsVisible(true), 100);
+    };
+
     useEffect(() => {
-        // Check if consent has already been made
+        // 1. Initial Check
         const consent = localStorage.getItem('cookie_consent');
         
-        // If consent exists, we assume user has already made a choice.
         if (consent) {
-            // Re-apply existing choice.
-            // Note: analytics_storage is typically always 'granted' in this configuration.
-            // But we reinforce the saved state for ads.
+            // Re-apply existing choice
             const adState = consent === 'granted' ? 'granted' : 'denied';
-            
             if (typeof window.gtag === 'function') {
                 window.gtag('consent', 'update', {
                     'ad_storage': adState,
                     'ad_user_data': adState,
                     'ad_personalization': adState,
-                    'analytics_storage': 'granted' // Always granted per requirement
+                    'analytics_storage': 'granted'
                 });
             }
-            return;
+        } else {
+            // No consent yet, show modal
+            showModal();
         }
 
-        // Show modal immediately (no delay)
-        setShouldRender(true);
-        // Small timeout to allow render before transitioning opacity
-        const timer = setTimeout(() => {
-            setIsVisible(true);
-        }, 100);
+        // 2. Listener for Re-opening (e.g. from Footer)
+        const handleOpenEvent = () => showModal();
+        window.addEventListener('openConsentModal', handleOpenEvent);
 
-        return () => clearTimeout(timer);
+        return () => window.removeEventListener('openConsentModal', handleOpenEvent);
     }, []);
 
     const updateConsent = (granted: boolean) => {
         const adState = granted ? 'granted' : 'denied';
         
-        // We only save the 'granted' or 'denied' status for the ADVERTISEMENT part.
-        localStorage.setItem('cookie_consent', adState === 'granted' ? 'granted' : 'denied');
+        localStorage.setItem('cookie_consent', adState);
         
         if (typeof window.gtag === 'function') {
             window.gtag('consent', 'update', {
                 'ad_storage': adState,
                 'ad_user_data': adState,
                 'ad_personalization': adState,
-                'analytics_storage': 'granted' // Always keep analytics on
+                'analytics_storage': 'granted'
             });
         }
     };
@@ -106,8 +105,7 @@ const WelcomeModal: React.FC = () => {
                     
                     <h3 className="text-2xl font-bold text-gray-900 mb-2">Welcome to<br />New Lucky Pharma!</h3>
                     <p className="text-gray-600 mb-6 text-sm leading-relaxed">
-                        We use cookies to deliver personalized advertisements. <br/><br/>
-                        Analytics are always active to improve our service. Please accept to see relevant ads.
+                        We use cookies to deliver personalized advertisements.
                     </p>
 
                     <div className="space-y-3">
