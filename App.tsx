@@ -46,6 +46,26 @@ const App: React.FC = () => {
       }
   }, []);
 
+  // Handle Deep Linking for Static Products
+  useEffect(() => {
+      const params = new URLSearchParams(window.location.search);
+      const productIdParam = params.get('product_id');
+
+      if (productIdParam) {
+          const id = Number(productIdParam);
+          // Only check static list as custom/AI products might not be consistent across devices by ID
+          const foundProduct = productList.find(p => p.id === id);
+
+          if (foundProduct) {
+              // Delay slightly to ensure app is fully mounted and ready
+              setTimeout(() => {
+                  setViewedProduct(foundProduct);
+                  // Optional: Clear URL? Keeping it allows refresh to stay on product.
+              }, 500);
+          }
+      }
+  }, []);
+
   const showToast = (message: string) => {
       setToast({ message, visible: true });
       setTimeout(() => {

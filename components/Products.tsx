@@ -34,20 +34,27 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
         return () => window.removeEventListener('keydown', handleEsc);
     }, []);
 
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        
-        // Blur input to hide keyboard on mobile
-        const inputElement = document.getElementById('product-search-input');
-        if (inputElement) inputElement.blur();
-        
-        // Return search bar to normal page flow
-        setIsFocused(false);
-        
-        if (!searchQuery.trim()) {
+    // Effect to handle Deep Linked Search Queries
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const deepSearchQuery = params.get('search_query');
+
+        if (deepSearchQuery) {
+            setSearchQuery(deepSearchQuery);
+            performSearch(deepSearchQuery);
+            // Scroll to products section
+            setTimeout(() => {
+                document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+            }, 500);
+        }
+    }, []);
+
+    const performSearch = async (query: string) => {
+        if (!query.trim()) {
             setDisplayedProducts(productList);
             setHasSearched(false);
             setIsAiResult(false);
+            setIsSearching(false);
             return;
         }
 
@@ -55,7 +62,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
         setIsSearching(true);
         setIsAiResult(false);
 
-        const lowerQuery = searchQuery.toLowerCase();
+        const lowerQuery = query.toLowerCase();
         const localResults = productList.filter(p => 
             p.name.toLowerCase().includes(lowerQuery) || 
             p.description.toLowerCase().includes(lowerQuery) ||
@@ -66,11 +73,24 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
             setDisplayedProducts(localResults);
             setIsSearching(false);
         } else {
-            const aiResults = await searchProducts(searchQuery);
+            const aiResults = await searchProducts(query);
             setDisplayedProducts(aiResults);
             setIsAiResult(true);
             setIsSearching(false);
         }
+    };
+
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        // Blur input to hide keyboard on mobile
+        const inputElement = document.getElementById('product-search-input');
+        if (inputElement) inputElement.blur();
+        
+        // Return search bar to normal page flow
+        setIsFocused(false);
+        
+        await performSearch(searchQuery);
     };
 
     const clearSearch = () => {
@@ -80,6 +100,13 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
         setIsAiResult(false);
         setIsSearching(false);
         setIsFocused(false);
+        
+        // Clear URL param if it exists
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('search_query')) {
+            url.searchParams.delete('search_query');
+            window.history.replaceState({}, '', url);
+        }
     };
 
     // Quick View Handlers
@@ -105,12 +132,16 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
     const handleShare = async (product: Product, e: React.MouseEvent) => {
         e.stopPropagation();
         
-        let shareUrl = window.location.href;
-        try {
-            new URL(shareUrl);
-        } catch {
-            shareUrl = window.location.origin || "https://newluckypharma.com";
-        }
+        // Construct Deep Link
+        const origin = window.location.origin;
+        // If ID < 100000, it's a static product -> Share ID (App.tsx handles opening modal)
+        // If ID > 100000, it's dynamic/AI -> Share Search Query (Products.tsx handles performing search)
+        const isStatic = product.id < 100000;
+        const queryParam = isStatic 
+            ? `product_id=${product.id}` 
+            : `search_query=${encodeURIComponent(product.name)}`;
+            
+        const shareUrl = `${origin}/?${queryParam}`;
         
         const shareData = {
             title: `New Lucky Pharma: ${product.name}`,
