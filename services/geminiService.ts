@@ -17,7 +17,8 @@ const getAIClient = () => {
 const SYSTEM_INSTRUCTION = `You are a warm, caring, and friendly AI Pharmacist assistant for 'New Lucky Pharma', located in Hanwara, Jharkhand. Your goal is to help users with their health queries in a supportive and reassuring manner.
 
 CORE LANGUAGE RULES (STRICT):
-1. Match the User's Language: 
+1. Match the User's Language:
+   - Always Reply in English.
    - If the user writes in English, you MUST reply in English.
    - If the user writes in Hinglish (Hindi in English script) or Hindi, you MUST reply in Hinglish (a friendly mix of Hindi and English).
    - Do not force Hinglish if the user asks in proper English.
@@ -31,13 +32,14 @@ GUIDELINES:
    - Always start with a friendly greeting.
 2. TONE:
    - Be empathetic, polite, and respectful. Use emojis (💊, 🌿, 😊, 🙏) to make the conversation warm.
+   - Use bold text (**) for key medicine names, headings, and important warnings.
 3. MEDICAL QUERIES:
    - Provide clear, point-wise advice.
    - Format:
-     1. [Medicine Name/Remedy]
-     2. [Usage Instructions]
-     3. [Dietary Tip]
-     4. [Warning]
+     1. **[Medicine Name/Remedy]**
+     2. Usage Instructions
+     3. Dietary Tip
+     4. **Warning**
    - Keep it concise but helpful.
    - Keep Answer short and clean, aiming for less lines maximum.
 4. IMAGE ANALYSIS:
@@ -70,10 +72,10 @@ const searchTool: Tool = {
     }]
 };
 
-// Helper to clean markdown bold syntax (**) from responses
+// Helper to clean markdown bold syntax (**) from responses - REMOVED to allow bolding
 const cleanText = (text: string): string => {
     if (!text) return "";
-    return text.replace(/\*\*/g, '').trim();
+    return text.trim();
 };
 
 export const getGeminiResponse = async (userMessage: string, imageBase64?: string): Promise<{ text: string, products?: Product[] }> => {
@@ -120,8 +122,8 @@ export const getGeminiResponse = async (userMessage: string, imageBase64?: strin
                 const products = await performHybridSearch(query);
                 
                 const resultText = products.length > 0 
-                    ? `I found ${products.length} products matching "${query}" for you. Tap 'View' to see details!`
-                    : `I couldn't find "${query}" in our local inventory, but I can suggest general remedies if you like.`;
+                    ? `I found ${products.length} products matching "**${query}**" for you. Tap 'View' to see details!`
+                    : `I couldn't find "**${query}**" in our local inventory, but I can suggest general remedies if you like.`;
 
                 return {
                     text: resultText,
@@ -166,7 +168,7 @@ export const translateText = async (text: string): Promise<string> => {
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Translate the following medical advice into clear, easy-to-understand Hindi. Keep numbered lists. Do not use bold markdown. Text: \n\n${text}`,
+            contents: `Translate the following medical advice into clear, easy-to-understand Hindi. Keep numbered lists. Use bold markers (**) for important words. Text: \n\n${text}`,
         });
 
         return cleanText(response.text) || text;

@@ -4,7 +4,7 @@ import { ChatMessage, Product } from '../types';
 import { ProductCardImage } from './ProductCardImage';
 
 // Moved outside component to prevent recreation and scope issues
-const WELCOME_MSG = "Hello! 👋 I'm your AI Pharmacist assistant. \n\nAsk me about: \n💊 Medicine uses \n🤒 Common symptoms \n🌿 Home remedies \n🔍 Find specific medicines (e.g. 'Find Dolo 650') \n\nNote: I am an AI, not a doctor. Please consult a professional for serious advice.";
+const WELCOME_MSG = "Hello! 👋 I'm your **AI Pharmacist**.\n\nAsk me about:\n💊 Medicine uses\n🤒 Common symptoms\n🌿 Home remedies\n🔍 Find specific medicines\n\n**Note:** I am an AI, not a doctor. Please consult a professional for serious advice.";
 
 interface AIChatProps {
     onViewProduct?: (product: Product) => void;
@@ -78,7 +78,7 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
     // Handle Mobile Back Button / Gesture
     useEffect(() => {
         if (isOpen) {
-            // Push a state to history so the back button catches this state instead of leaving the page
+            // Push a state to history so the back button catches this state instead of using previous route
             window.history.pushState(null, '', window.location.href);
 
             const handlePopState = () => {
@@ -137,8 +137,6 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                 timestamp: Date.now()
             };
             setMessages([defaultMessage]);
-            // We rely on useEffect to update localStorage, but explicit removal is safe too
-            // localStorage.removeItem('chat_history'); 
             setIsConfirmingClear(false);
         } else {
             // First click - ask for confirmation
@@ -189,12 +187,10 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
     };
 
     const handleTranslate = async (id: string, text: string) => {
-        // Find the message
         const msgIndex = messages.findIndex(m => m.id === id);
         if (msgIndex === -1) return;
         const msg = messages[msgIndex];
 
-        // If currently displaying translated text (originalText exists), revert to original
         if (msg.originalText) {
             setMessages(prev => prev.map(m => 
                 m.id === id ? { ...m, text: m.originalText!, originalText: undefined } : m
@@ -202,7 +198,6 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
             return;
         }
 
-        // Else, translate
         setTranslatingId(id);
         const translatedText = await translateText(text);
         
@@ -230,7 +225,7 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
             text: aiResponse.text,
             isUser: false,
             timestamp: Date.now(),
-            products: aiResponse.products // Attach products if found
+            products: aiResponse.products
         };
 
         setMessages(prev => [...prev, aiMessage]);
@@ -272,7 +267,7 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
             text: aiResponse.text,
             isUser: false,
             timestamp: Date.now(),
-            products: aiResponse.products // Attach products if found
+            products: aiResponse.products
         };
 
         setMessages(prev => [...prev, aiMessage]);
@@ -281,6 +276,17 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
         if (!isOpenRef.current) {
             setHasUnread(true);
         }
+    };
+
+    // Helper to format text with bold markers
+    const formatMessageText = (text: string) => {
+        const parts = text.split(/(\*\*.*?\*\*)/g);
+        return parts.map((part, index) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={index} className="text-gray-900 font-bold">{part.slice(2, -2)}</strong>;
+            }
+            return <span key={index}>{part}</span>;
+        });
     };
 
     return (
@@ -309,7 +315,6 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                         </p>
                     </div>
                 </div>
-                {/* Tail */}
                 <div className="absolute -bottom-2 right-8 w-4 h-4 bg-white border-b border-r border-medical-100 transform rotate-45"></div>
             </div>
 
@@ -319,33 +324,28 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                 className={`fixed bottom-6 right-6 z-[90] p-0 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105 group ${isOpen ? 'rotate-90' : 'animate-bounce-subtle'}`}
                 aria-label="Chat with AI Pharmacist"
             >
-                {/* Notification Dot */}
                 {hasUnread && (
                     <span className="absolute -top-1 -right-1 flex h-5 w-5 z-20">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 border-2 border-white shadow-sm"></span>
                     </span>
                 )}
-
-                {/* Pulse Animation */}
                 <div className={`absolute inset-0 bg-medical-400 rounded-full animate-ping opacity-20 ${isOpen ? 'hidden' : 'block'}`}></div>
-
-                {/* Main Button */}
                 <div className="relative w-16 h-16 rounded-full bg-medical-600 flex items-center justify-center border-4 border-white shadow-md overflow-hidden z-10">
                     <i className={`fas ${isOpen ? 'fa-times' : 'fa-robot'} text-3xl text-white transition-all duration-300`}></i>
                 </div>
             </button>
 
-            {/* Modal Overlay - Solid Background */}
+            {/* Modal Overlay */}
             <div 
                 className={`fixed inset-0 z-[100] flex items-end sm:items-center justify-center px-0 sm:px-4 bg-black/50 transition-all duration-300 ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
                 onClick={(e) => e.target === e.currentTarget && toggleChat()}
             >
-                {/* Chat Container - Solid White */}
+                {/* Chat Container */}
                 <div 
                     className={`bg-white w-full sm:max-w-[450px] h-[90vh] sm:h-[650px] sm:rounded-[2rem] rounded-t-[2rem] shadow-2xl flex flex-col transform transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) relative overflow-hidden ${isOpen ? 'translate-y-0 scale-100' : 'translate-y-full sm:translate-y-10 scale-95'}`}
                 >
-                    {/* Header - Solid Color */}
+                    {/* Header */}
                     <div className="bg-medical-600 h-24 flex flex-col justify-center px-6 shadow-md relative z-20">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
@@ -378,12 +378,15 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                         </div>
                     </div>
 
-                    {/* Chat Area - Solid Background */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-5 bg-gray-50 scroll-smooth relative">
+                    {/* Chat Area */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-gray-50 scroll-smooth relative">
                         {messages.map((msg, index) => {
                             const showDate = index === 0 || 
                                 new Date(msg.timestamp).toLocaleDateString() !== new Date(messages[index - 1].timestamp).toLocaleDateString();
                             const dateLabel = new Date(msg.timestamp).toLocaleDateString() === new Date().toLocaleDateString() ? 'Today' : new Date(msg.timestamp).toLocaleDateString();
+
+                            // Logic to only show header for the very first message
+                            const showHeader = !msg.isUser && index === 0;
 
                             return (
                                 <React.Fragment key={msg.id}>
@@ -396,37 +399,56 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                     )}
                                     <div className={`flex items-end gap-3 animate-slide-up relative z-0 ${msg.isUser ? 'flex-row-reverse' : ''}`}>
                                         
-                                        {/* Avatar - Increased Size */}
-                                        <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 shadow-md border-2 border-white ${msg.isUser ? 'bg-gray-800' : 'bg-white'}`}>
-                                            <i className={`fas ${msg.isUser ? 'fa-user text-white text-xl' : 'fa-robot text-medical-600 text-2xl'}`}></i>
+                                        {/* Avatar */}
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border-2 border-white ${msg.isUser ? 'bg-gray-800' : 'bg-medical-50'}`}>
+                                            <i className={`fas ${msg.isUser ? 'fa-user text-white text-sm' : 'fa-user-md text-medical-600 text-lg'}`}></i>
                                         </div>
 
-                                        {/* Message Bubble - Solid Colors */}
+                                        {/* Message Bubble - Doctor Style for Bot */}
                                         <div className={`flex flex-col ${msg.isUser ? 'items-end' : 'items-start'} max-w-[85%]`}>
                                             <div className={`
-                                                p-4 rounded-2xl shadow-sm text-sm leading-relaxed relative border
+                                                relative overflow-hidden text-sm leading-relaxed border transition-all duration-300
                                                 ${msg.isUser 
-                                                    ? 'bg-medical-600 text-white rounded-br-none border-medical-700' 
-                                                    : 'bg-white text-gray-800 rounded-bl-none border-gray-200'}
+                                                    ? 'bg-medical-600 text-white rounded-2xl rounded-tr-none border-medical-700 shadow-md p-4' 
+                                                    : 'bg-white text-gray-800 rounded-2xl rounded-tl-none border-medical-100 shadow-sm'}
                                             `}>
-                                                {msg.image && (
-                                                    <img 
-                                                        src={msg.image} 
-                                                        alt="Attachment" 
-                                                        className="w-full rounded-lg mb-3 h-auto object-cover border border-gray-200 shadow-sm"
-                                                    />
+                                                {/* Header for Bot Messages Only - Only on first message */}
+                                                {showHeader && (
+                                                    <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100 bg-gray-50/50 p-3 rounded-t-xl -mt-0.5 -mx-0.5">
+                                                        <i className="fas fa-robot text-medical-500 text-xs"></i>
+                                                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">New Lucky Pharma AI</span>
+                                                    </div>
                                                 )}
-                                                <div className="whitespace-pre-wrap">{msg.text}</div>
+
+                                                <div className={!msg.isUser ? (showHeader ? 'px-4 pb-4' : 'p-4') : ''}>
+                                                    {msg.image && (
+                                                        <img 
+                                                            src={msg.image} 
+                                                            alt="Attachment" 
+                                                            className="w-full rounded-lg mb-3 h-auto object-cover border border-gray-200 shadow-sm"
+                                                        />
+                                                    )}
+                                                    <div className="whitespace-pre-wrap">{formatMessageText(msg.text)}</div>
+                                                </div>
+                                                
+                                                {/* Disclaimer for Bot messages */}
+                                                {!msg.isUser && (
+                                                     <div className="bg-green-50/50 p-2 text-[10px] text-green-800 flex items-center gap-1.5 border-t border-green-100 rounded-b-xl">
+                                                        <i className="fas fa-shield-alt text-green-600"></i>
+                                                        Always consult a doctor.
+                                                     </div>
+                                                )}
                                             </div>
                                             
-                                            {/* Products Carousel - Rendered ONLY if products exist */}
+                                            {/* Products Carousel */}
                                             {msg.products && msg.products.length > 0 && (
-                                                <div className="mt-3 w-full -ml-1">
-                                                    <div className="flex gap-3 overflow-x-auto pb-4 custom-scrollbar snap-x px-1">
+                                                <div className="mt-3 w-full -ml-1 pl-1">
+                                                    <div className="flex gap-3 overflow-x-auto pb-4 custom-scrollbar snap-x">
                                                         {msg.products.map(product => (
-                                                            <div key={product.id} className="min-w-[160px] w-[160px] bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden snap-start flex-shrink-0 flex flex-col">
-                                                                <div className="h-28 bg-gray-50 relative">
+                                                            <div key={product.id} className="min-w-[150px] w-[150px] bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden snap-start flex-shrink-0 flex flex-col group hover:border-medical-300 transition-colors">
+                                                                <div className="h-24 bg-gray-50 relative overflow-hidden">
                                                                     <ProductCardImage src={product.image} alt={product.name} />
+                                                                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors"></div>
                                                                 </div>
                                                                 <div className="p-3 flex flex-col flex-grow">
                                                                     <h4 className="text-xs font-bold text-gray-800 line-clamp-1 mb-1">{product.name}</h4>
@@ -461,7 +483,6 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                                             title={msg.originalText ? "Revert to Original" : "Translate to Hindi"}
                                                         >
                                                             <i className={`fas ${translatingId === msg.id ? 'fa-spinner fa-spin' : (msg.originalText ? 'fa-undo' : 'fa-language')} text-xs`}></i>
-                                                            {msg.originalText && <span className="text-[10px] font-bold">Undo</span>}
                                                         </button>
                                                     </div>
                                                 )}
@@ -472,45 +493,26 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                             );
                         })}
                         
-                        {/* Enhanced Loading State */}
+                        {/* Loading State */}
                         {isLoading && (
                             <div className="flex items-end gap-3 animate-slide-up my-4">
-                                {/* Pulsing Avatar */}
-                                <div className="relative w-11 h-11 flex-shrink-0">
-                                    <div className="absolute inset-0 bg-medical-500 rounded-full animate-ping opacity-20 duration-1000"></div>
-                                    <div className="relative w-full h-full rounded-full bg-gradient-to-br from-white to-gray-50 border-2 border-medical-100 flex items-center justify-center shadow-md z-10">
-                                        <i className="fas fa-robot text-medical-600 text-2xl animate-[bounce-subtle_2s_infinite]"></i>
-                                    </div>
+                                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-medical-50 border-2 border-white shadow-sm">
+                                     <i className="fas fa-user-md text-medical-600 text-lg"></i>
                                 </div>
-                                
-                                {/* Processing Indicator Bubble */}
-                                <div className="bg-white px-5 py-3 rounded-2xl rounded-bl-none shadow-md border border-gray-100 flex flex-col gap-2 min-w-[160px] relative overflow-hidden">
-                                    <div className="flex items-center gap-2 relative z-10">
-                                        <i className="fas fa-sparkles text-yellow-400 animate-pulse text-sm"></i>
-                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                            Thinking...
-                                        </span>
+                                <div className="bg-white px-5 py-4 rounded-2xl rounded-tl-none shadow-sm border border-medical-100 flex items-center gap-3">
+                                    <div className="flex gap-1.5">
+                                        <div className="w-2 h-2 bg-medical-400 rounded-full animate-bounce"></div>
+                                        <div className="w-2 h-2 bg-medical-400 rounded-full animate-bounce delay-100"></div>
+                                        <div className="w-2 h-2 bg-medical-400 rounded-full animate-bounce delay-200"></div>
                                     </div>
-                                    
-                                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden relative z-10">
-                                        <div 
-                                            className="absolute top-0 h-full w-2/3 bg-gradient-to-r from-medical-400 to-teal-400 rounded-full"
-                                            style={{ 
-                                                animation: 'shine 1.5s infinite linear',
-                                                left: '-75%'
-                                            }}
-                                        ></div>
-                                    </div>
-                                    
-                                    {/* Subtle background glow */}
-                                    <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-medical-50 rounded-full blur-xl z-0"></div>
+                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Analyzing...</span>
                                 </div>
                             </div>
                         )}
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Footer / Input Area - Solid Background */}
+                    {/* Footer / Input Area */}
                     <div className="p-4 bg-white border-t border-gray-200 relative z-20">
                         {/* Image Preview */}
                         {selectedImage && (
@@ -551,7 +553,6 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                 onChange={handleFileSelect}
                             />
                             
-                            {/* Tools Menu */}
                             <div className="flex gap-1">
                                 <button 
                                     type="button"
@@ -563,7 +564,6 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                 </button>
                             </div>
 
-                            {/* Main Input */}
                             <div className="flex-1 relative transition-all duration-300 rounded-full border border-gray-300 bg-white focus-within:ring-2 focus-within:ring-medical-200 focus-within:border-medical-500">
                                 <input 
                                     value={inputValue}
@@ -573,7 +573,6 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                 />
                             </div>
                             
-                            {/* Send Button */}
                             <button 
                                 type="submit" 
                                 disabled={isLoading || (!inputValue.trim() && !selectedImage)}
