@@ -113,8 +113,8 @@ const VideoPromo: React.FC = () => {
                     onCanPlay={() => setVideoLoaded(true)}
                     onError={() => setVideoError(true)}
                 >
-                    {/* Reliable public video URL */}
-                    <source src="https://videos.pexels.com/video-files/3129671/3129671-sd_640_360_25fps.mp4" type="video/mp4" />
+                    {/* Updated to a reliable HD source (Pixabay) to fix Format Error */}
+                    <source src="https://cdn.pixabay.com/video/2020/07/04/43878-435987399_large.mp4" type="video/mp4" />
                 </video>
             )}
 

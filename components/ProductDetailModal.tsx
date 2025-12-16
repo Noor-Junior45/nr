@@ -97,7 +97,7 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClos
                 <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden custom-scrollbar">
                     
                     {/* Left: Image Panel - Reduced height on mobile to show more content */}
-                    <div className="w-full md:w-5/12 shrink-0 bg-gradient-to-br from-blue-50 via-indigo-50/30 to-white relative flex items-center justify-center p-6 md:p-12 min-h-[250px] md:h-full">
+                    <div className="w-full md:w-5/12 shrink-0 bg-gradient-to-br from-blue-50 via-indigo-50/30 to-white relative flex flex-col items-center justify-center p-6 md:p-12 min-h-[300px] md:h-full gap-4">
                         {/* Background Blob */}
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-white rounded-full mix-blend-overlay blur-3xl opacity-50"></div>
                         
@@ -105,11 +105,13 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClos
                             <ProductCardImage src={product.image} alt={product.name} className="rounded-2xl" />
                         </div>
 
-                        {/* AI Badge on Image */}
+                        {/* AI Badge - Improved Mobile Positioning */}
                         {isAiResult && (
-                            <div className="absolute bottom-6 left-6 bg-indigo-600/90 backdrop-blur text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-2 border border-white/20">
-                                <i className="fas fa-robot animate-pulse"></i>
-                                <span>AI Generated Result</span>
+                            <div className="relative md:absolute md:bottom-6 md:left-6 z-20 w-auto">
+                                <span className="bg-indigo-600/95 backdrop-blur text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg flex items-center justify-center gap-2 border border-white/20 animate-fade-in-up">
+                                    <i className="fas fa-robot animate-pulse text-indigo-200"></i>
+                                    <span>AI Generated Result</span>
+                                </span>
                             </div>
                         )}
                     </div>

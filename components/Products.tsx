@@ -187,7 +187,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                     <div className={`
                         w-full max-w-2xl transition-all duration-500 ease-out origin-top
                         ${isFocused
-                            ? 'fixed top-0 left-0 right-0 w-full p-4 md:p-0 z-[60] md:relative md:top-auto md:left-auto md:transform md:scale-110' 
+                            ? 'fixed top-20 left-0 right-0 w-full p-4 md:p-0 z-[60] md:relative md:top-auto md:left-auto md:transform md:scale-110' 
                             : 'relative hover:scale-[1.01]'}
                     `}>
                         <form onSubmit={handleSearch} className={`relative group w-full transition-all duration-300 ${isFocused ? 'shadow-2xl rounded-full' : ''}`} role="search">

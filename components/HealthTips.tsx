@@ -57,8 +57,8 @@ const HealthTips: React.FC = () => {
                     onCanPlay={() => setVideoLoaded(true)}
                     onError={() => setVideoError(true)}
                 >
-                    {/* Using Pexels video (reliable, free, high quality, no expiration) */}
-                    <source src="https://videos.pexels.com/video-files/4434242/4434242-sd_640_360_25fps.mp4" type="video/mp4" />
+                    {/* Updated to a reliable HD source (Pixabay) to fix Format Error */}
+                    <source src="https://cdn.pixabay.com/video/2022/10/05/133649-757657754_large.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
                 </video>
             )}
