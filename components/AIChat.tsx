@@ -17,6 +17,9 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
     // Unread state for notification dot (Initially true for visibility)
     const [hasUnread, setHasUnread] = useState(true);
     
+    // Greeting Bubble State
+    const [showBubble, setShowBubble] = useState(false);
+    
     // Ref to track open state inside async functions
     const isOpenRef = useRef(isOpen);
 
@@ -57,8 +60,20 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
         isOpenRef.current = isOpen;
         if (isOpen) {
             setHasUnread(false);
+            setShowBubble(false); // Hide bubble when chat opens
         }
     }, [isOpen]);
+
+    // Show greeting bubble after a delay on first load
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            // Only show if chat hasn't been opened and no conversation started
+            if (!isOpen && messages.length <= 1) { 
+                setShowBubble(true);
+            }
+        }, 4000); // 4 seconds delay
+        return () => clearTimeout(timer);
+    }, [isOpen, messages.length]);
 
     // Handle Mobile Back Button / Gesture
     useEffect(() => {
@@ -89,8 +104,16 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
     // Listen for 'ask-ai' custom events from other components
     useEffect(() => {
         const handleAskAI = (e: any) => {
-            const { productName, description } = e.detail;
-            const query = `Can you explain what ${productName} is used for and provide some health tips? \n\nDescription context: ${description}`;
+            const { productName, description, customQuery } = e.detail;
+            
+            let query = "";
+            if (customQuery) {
+                query = customQuery;
+            } else if (productName) {
+                query = `Can you explain what ${productName} is used for and provide some health tips? \n\nDescription context: ${description}`;
+            } else {
+                return; // Invalid event data
+            }
             
             setIsOpen(true);
             
@@ -262,6 +285,34 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
 
     return (
         <>
+            {/* Proactive Greeting Bubble */}
+            <div 
+                className={`fixed bottom-24 right-6 z-[85] max-w-[240px] bg-white p-4 rounded-2xl rounded-tr-none shadow-xl border border-medical-100 transform transition-all duration-500 origin-bottom-right ${showBubble && !isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-4 pointer-events-none'}`}
+            >
+                <button 
+                    onClick={(e) => { e.stopPropagation(); setShowBubble(false); }}
+                    className="absolute -top-2 -left-2 w-6 h-6 bg-gray-100 hover:bg-gray-200 text-gray-400 hover:text-gray-600 rounded-full flex items-center justify-center shadow-sm transition-colors z-10"
+                >
+                    <i className="fas fa-times text-xs"></i>
+                </button>
+                <div 
+                    className="flex items-start gap-3 cursor-pointer"
+                    onClick={toggleChat}
+                >
+                    <div className="w-10 h-10 rounded-full bg-medical-100 flex items-center justify-center flex-shrink-0 text-medical-600 border border-medical-200">
+                        <i className="fas fa-user-doctor text-lg"></i>
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray-800 font-bold mb-1">Hi there! 👋</p>
+                        <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                            I'm your AI Pharmacist. Need help finding a <span className="text-medical-600">medicine</span> or <span className="text-medical-600">health tip</span>?
+                        </p>
+                    </div>
+                </div>
+                {/* Tail */}
+                <div className="absolute -bottom-2 right-8 w-4 h-4 bg-white border-b border-r border-medical-100 transform rotate-45"></div>
+            </div>
+
             {/* FAB - Bot Type Design */}
             <button 
                 onClick={toggleChat}

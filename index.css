@@ -95,3 +95,22 @@
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
 }
+
+/* Water Animation */
+@keyframes rise {
+    0% { bottom: -10px; transform: translateX(0); opacity: 0; }
+    50% { opacity: 1; }
+    100% { bottom: 120%; transform: translateX(-20px); opacity: 0; }
+}
+.animate-rise {
+    animation: rise 4s infinite ease-in;
+}
+
+@keyframes wave-flow {
+    0% { transform: translateX(0) translateZ(0) scaleY(1); }
+    50% { transform: translateX(-25%) translateZ(0) scaleY(0.8); }
+    100% { transform: translateX(-50%) translateZ(0) scaleY(1); }
+}
+.animate-wave {
+    animation: wave-flow 10s infinite linear;
+}

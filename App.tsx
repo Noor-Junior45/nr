@@ -5,6 +5,7 @@ import Hero from './components/Hero';
 import Products from './components/Products';
 import Services from './components/Services';
 import HealthTips from './components/HealthTips';
+import HealthTools from './components/HealthTools';
 import FAQ from './components/FAQ';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
@@ -45,9 +46,23 @@ const App: React.FC = () => {
       }
   }, []);
 
+  const showToast = (message: string) => {
+      setToast({ message, visible: true });
+      setTimeout(() => {
+          setToast(prev => prev ? { ...prev, visible: false } : null);
+      }, 3000);
+  };
+
   const toggleWishlist = (product: Product) => {
-      let message = "";
       const productId = product.id;
+      const isAlreadyInWishlist = wishlist.includes(productId);
+
+      // Show feedback immediately based on current state
+      if (!isAlreadyInWishlist) {
+          showToast("Added to Wishlist");
+      } else {
+          showToast("Removed from Wishlist");
+      }
 
       setWishlist(prev => {
           const exists = prev.includes(productId);
@@ -56,16 +71,12 @@ const App: React.FC = () => {
               : [...prev, productId];
           
           localStorage.setItem('lucky_pharma_wishlist', JSON.stringify(newWishlist));
-          
-          if (!exists) {
-            message = "Added to Wishlist";
-          }
           return newWishlist;
       });
 
       // If it's a dynamic/AI product (not in static list), save it to customProducts
       const isStatic = productList.some(p => p.id === productId);
-      if (!isStatic) {
+      if (!isStatic && !isAlreadyInWishlist) {
           setCustomProducts(prev => {
               const exists = prev.some(p => p.id === productId);
               if (!exists) {
@@ -76,17 +87,6 @@ const App: React.FC = () => {
               return prev;
           });
       }
-
-      if (message) {
-        showToast(message);
-      }
-  };
-
-  const showToast = (message: string) => {
-      setToast({ message, visible: true });
-      setTimeout(() => {
-          setToast(prev => prev ? { ...prev, visible: false } : null);
-      }, 3000);
   };
 
   useEffect(() => {
@@ -153,6 +153,10 @@ const App: React.FC = () => {
         <Products wishlist={wishlist} toggleWishlist={toggleWishlist} />
         {/* Google AdSense Banner (After Products) */}
         <AdSense slot="1234567890" />
+        
+        {/* New Health Tools Section (Moved above Services) */}
+        <HealthTools />
+        
         <Services />
         <HealthTips />
         <FAQ />

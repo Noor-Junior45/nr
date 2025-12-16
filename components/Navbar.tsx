@@ -13,6 +13,7 @@ const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) =>
         { name: 'Home', href: '#home' },
         { name: 'About', href: '#about' },
         { name: 'Products', href: '#products' },
+        { name: 'Tools', href: '#tools', icon: 'fas fa-calculator' }, // Removed New Badge
         { name: 'Services', href: '#services' },
         { name: 'Tips', href: '#health-tips' },
         { name: 'FAQ', href: '#faq' },
@@ -93,7 +94,7 @@ const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) =>
                                 
                                 {/* Badge - Moved further out with -top-3 -right-3 */}
                                 {wishlistCount > 0 && (
-                                    <span className="absolute -top-3 -right-3 w-5 h-5 bg-red-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-lg border-2 border-white animate-scale-up">
+                                    <span key={wishlistCount} className="absolute -top-3 -right-3 w-5 h-5 bg-red-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-lg border-2 border-white animate-scale-up">
                                         {wishlistCount}
                                     </span>
                                 )}
@@ -133,6 +134,13 @@ const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) =>
                                 <i className={`${link.icon} text-xs ${activeLink === link.href ? 'text-medical-600' : 'text-gray-400 group-hover:text-medical-500'}`}></i>
                             )}
                             <span className="relative z-10">{link.name}</span>
+                            
+                            {/* New Badge - REMOVED */}
+                            {(link as any).isNew && (
+                                <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full animate-bounce shadow-sm">
+                                    NEW
+                                </span>
+                            )}
                             
                             {/* Active Indicator (Bottom Border) - Changed to Green */}
                             {activeLink === link.href && (
