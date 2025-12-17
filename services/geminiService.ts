@@ -1,10 +1,9 @@
-import { GoogleGenAI, Type, FunctionDeclaration, Tool, Modality } from "@google/genai";
+import { GoogleGenAI, Type, Tool, Modality } from "@google/genai";
 import { Product } from "../types";
 import { productList } from "../data/products";
 
 // Initialize safely - relies on Vite's define plugin to replace process.env.API_KEY at build time
 const getAIClient = () => {
-    // In Vite production builds, process.env.API_KEY is replaced by the actual string.
     const apiKey = process.env.API_KEY;
 
     if (!apiKey) {
@@ -14,12 +13,17 @@ const getAIClient = () => {
     return new GoogleGenAI({ apiKey });
 };
 
+// Public check for UI status
+export const isAIConfigured = (): boolean => {
+    return !!process.env.API_KEY;
+};
+
 const SYSTEM_INSTRUCTION = `You are a warm, caring, and friendly AI Pharmacist assistant for 'New Lucky Pharma', located in Hanwara, Jharkhand. Your goal is to help users with their health queries in a supportive and reassuring manner.
 
 GUIDELINES:
 1. GREETING:
    - If user ask questions then give answer remove greeeting.
-   - If the user starts with a simple greeting (e.g., "Hi", "Hello", "How are you?"), reply briefly with a friendly, single-sentence greeting and ask how you can help (e.g., "Hello! How can I assist you with your health questions today?").
+   - If the user starts with a simple greeting (e.g., "Hi", "Hello", "How are you?"), reply briefly with a friendly, single-sentence greeting and ask how you can help.
    - For all other queries (i.e., medical questions, product questions), reply directly and immediately to the user's query. Do not add any extra conversational text.
    - Always start with a friendly greeting if it is the very first message.
 2. TONE:
@@ -40,8 +44,9 @@ GUIDELINES:
 5. PRODUCT SEARCH:
    - If the user asks to "find", "search", "show", "buy" or asks about the "price" or "availability" of a specific medicine, USE THE 'search_medicines' TOOL.
 6. MANDATORY DISCLAIMER: End *every* medical suggestion with: "Please consult a doctor for serious advice. Stay safe! 💚"
-7. LOCATION & MAPS:
-   - Use the Google Maps tool to provide accurate location information when users ask about the pharmacy's location, nearby landmarks, or directions.
+7. LOCATION & DIRECTIONS:
+   - If a user asks for the pharmacy's location or directions, provide the address below.
+   - Mention that they can use the "Directions" button in the top menu or the interactive map at the bottom of the page for GPS navigation.
    - Location: New Lucky Pharma, Main Road, Hanwara, Godda, Jharkhand (814154).
    - Time: Open 7 days a week, MON-SUN: 6:00 am to 12:00 pm & 1:00 pm to 9:00 pm, except Friday: 6:00 am to 12:00 pm & 2:00 pm to 9:00 pm.
 
@@ -65,7 +70,7 @@ const searchTool: Tool = {
     }]
 };
 
-// Helper to clean markdown bold syntax (**) from responses - REMOVED to allow bolding
+// Helper to clean markdown bold syntax (**) from responses
 const cleanText = (text: string): string => {
     if (!text) return "";
     return text.trim();
@@ -78,13 +83,11 @@ export const getGeminiResponse = async (userMessage: string, imageBase64?: strin
 
         let contents: any;
         
-        // Construct the final prompt with language instruction if needed
         let finalMessage = userMessage;
         if (targetLanguage && targetLanguage !== 'English') {
             finalMessage = `${userMessage}\n\n[System Instruction: You MUST reply to this message in ${targetLanguage} language.]`;
         }
 
-        // Handle Image Input
         if (imageBase64) {
              const match = imageBase64.match(/^data:([^;]+);base64,(.+)$/);
              if (match) {
@@ -101,29 +104,25 @@ export const getGeminiResponse = async (userMessage: string, imageBase64?: strin
             contents = finalMessage;
         }
 
-        // 1. First attempt with tools enabled
+        // Fixed 400 Error: Removed googleMaps tool from gemini-3-flash-preview call.
+        // Google Maps grounding is only supported in Gemini 2.5 series and cannot be combined with FunctionDeclarations.
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-flash-preview',
             contents: contents,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
-                // Add Google Maps tool here
-                tools: [searchTool, { googleMaps: {} }]
+                tools: [searchTool]
             }
         });
 
-        // 2. Check for tool calls
         const functionCalls = response.functionCalls;
         
         if (functionCalls && functionCalls.length > 0) {
             const call = functionCalls[0];
             if (call.name === "search_medicines") {
                 const query = call.args['query'] as string;
-                
-                // Perform Hybrid Search (Local First, then AI)
                 const products = await performHybridSearch(query);
                 
-                // Translate the tool response text too if needed
                 let resultText = products.length > 0 
                     ? `I found ${products.length} products matching "**${query}**" for you. Tap 'View' to see details!`
                     : `I couldn't find "**${query}**" in our local inventory, but I can suggest general remedies if you like.`;
@@ -139,30 +138,14 @@ export const getGeminiResponse = async (userMessage: string, imageBase64?: strin
             }
         }
 
-        // 3. Standard Text Response with Grounding Extraction
-        // Manual extraction to avoid "non-text parts functionCall" warning from SDK getter
-        let text = "";
-        if (response.candidates && response.candidates.length > 0 && response.candidates[0].content && response.candidates[0].content.parts) {
-            for (const part of response.candidates[0].content.parts) {
-                if (part.text) {
-                    text += part.text;
-                }
-            }
-        }
-
+        const text = response.text || "";
         const groundingSources: { title: string; url: string }[] = [];
 
-        // Extract Grounding Metadata (Maps & Web)
         if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
             response.candidates[0].groundingMetadata.groundingChunks.forEach((chunk: any) => {
                 if (chunk.web?.uri && chunk.web?.title) {
                     groundingSources.push({ title: chunk.web.title, url: chunk.web.uri });
                 }
-                if (chunk.maps?.sourceConfig?.googleMapsDisplayConfig?.placeId) {
-                     // Sometimes maps chunk structure varies, but usually:
-                     // chunk.maps.uri is present directly in the documented structure.
-                }
-                // Check direct maps URI property as per documentation
                 if (chunk.maps?.uri && chunk.maps?.title) {
                     groundingSources.push({ title: chunk.maps.title, url: chunk.maps.uri });
                 } else if (chunk.maps?.uri) {
@@ -182,11 +165,9 @@ export const getGeminiResponse = async (userMessage: string, imageBase64?: strin
     }
 };
 
-// Hybrid Search: Local List -> AI Search
 const performHybridSearch = async (query: string): Promise<Product[]> => {
     const lowerQuery = query.toLowerCase();
     
-    // 1. Search Local Data
     const localResults = productList.filter(p => 
         p.name.toLowerCase().includes(lowerQuery) || 
         p.description.toLowerCase().includes(lowerQuery) ||
@@ -194,10 +175,9 @@ const performHybridSearch = async (query: string): Promise<Product[]> => {
     );
 
     if (localResults.length > 0) {
-        return localResults.slice(0, 4); // Limit to 4
+        return localResults.slice(0, 4);
     }
 
-    // 2. Fallback to AI Search if no local matches
     return await searchProducts(query);
 };
 
@@ -207,11 +187,11 @@ export const translateText = async (text: string, targetLanguage: string = 'Engl
         if (!ai) return text;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-flash-preview',
             contents: `Translate the following text into ${targetLanguage}. Keep any markdown formatting like bolding (**). Text: \n\n${text}`,
         });
 
-        return cleanText(response.text) || text;
+        return response.text || text;
     } catch (error) {
         console.error("Translation Error:", error);
         return text;
@@ -223,7 +203,6 @@ export const generateSpeech = async (text: string): Promise<string | null> => {
         const ai = getAIClient();
         if (!ai) return null;
 
-        // Clean text for speech (remove markdown asterisks)
         const cleanSpeechText = text.replace(/\*\*/g, "").replace(/\*/g, "");
 
         const response = await ai.models.generateContent({
@@ -252,9 +231,8 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
         const ai = getAIClient();
         if (!ai) return [];
 
-        // Request a structured JSON response to ensure all fields are present
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-flash-preview',
             contents: `You are an expert pharmacist in India. User Query: "${query}".
             Generate a list of 4 DISTINCT, POPULAR BRAND NAME medicines available in India that match the query.
             
@@ -266,10 +244,6 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
             5. SHOW Result according to User Query.
             6. Match first result with user queries.
 
-            Example:
-            - Query: "Fever" -> Name: "Dolo 650", Composition: "Paracetamol (650mg)".
-            - Query: "Gas" -> Name: "Pan 40", Composition: "Pantoprazole (40mg)".
-            
             Provide: Category, Composition (Active Ingredients with strength), Usage, Side Effects, Precautions, and Prescription Status.`,
             config: {
                 responseMimeType: "application/json",
@@ -299,21 +273,12 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
         let rawData = response.text;
         if (!rawData) return [];
 
-        // Clean markdown fences if the model includes them despite JSON mode
-        if (rawData.startsWith('```json')) {
-            rawData = rawData.replace(/^```json\s+/, '').replace(/\s+```$/, '');
-        } else if (rawData.startsWith('```')) {
-            rawData = rawData.replace(/^```\s+/, '').replace(/\s+```$/, '');
-        }
-
         const parsedData = JSON.parse(rawData);
         
-        // Transform the AI response to match our Product type
         return parsedData.map((item: any, index: number) => ({
-            id: Date.now() + index + 100000, // Unique ID offset to avoid collisions with local IDs
+            id: Date.now() + index + 100000,
             name: item.name,
             description: item.description,
-            // Use Pollinations AI to generate a relevant image based on the product name
             image: `https://image.pollinations.ai/prompt/medicine%20${encodeURIComponent(item.name)}%20product%20packaging%20white%20background?width=400&height=400&nologo=true`,
             delay: `reveal-delay-${(index * 100) % 400}`,
             category: item.category,

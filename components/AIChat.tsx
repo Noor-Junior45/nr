@@ -1,10 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { getGeminiResponse, generateSpeech } from '../services/geminiService';
+import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
+import { getGeminiResponse, generateSpeech, isAIConfigured } from '../services/geminiService';
 import { ChatMessage, Product } from '../types';
 import { ProductCardImage } from './ProductCardImage';
 
-// Audio Encoding Helpers
-function decodeBase64(base64: string) {
+// --- AUDIO UTILS FOR LIVE API ---
+function encode(bytes: Uint8Array) {
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function decode(base64: string) {
   const binaryString = atob(base64);
   const len = binaryString.length;
   const bytes = new Uint8Array(len);
@@ -12,6 +22,18 @@ function decodeBase64(base64: string) {
     bytes[i] = binaryString.charCodeAt(i);
   }
   return bytes;
+}
+
+function createBlob(data: Float32Array): { data: string; mimeType: string } {
+  const l = data.length;
+  const int16 = new Int16Array(l);
+  for (let i = 0; i < l; i++) {
+    int16[i] = data[i] * 32768;
+  }
+  return {
+    data: encode(new Uint8Array(int16.buffer)),
+    mimeType: 'audio/pcm;rate=16000',
+  };
 }
 
 async function decodeAudioData(
@@ -33,121 +55,92 @@ async function decodeAudioData(
   return buffer;
 }
 
-// Comprehensive Language List
-const LANGUAGES = [
-    { code: 'Afrikaans', name: 'Afrikaans' },
-    { code: 'Albanian', name: 'Albanian' },
-    { code: 'Amharic', name: 'Amharic' },
-    { code: 'Arabic', name: 'Arabic' },
-    { code: 'Armenian', name: 'Armenian' },
-    { code: 'Azerbaijani', name: 'Azerbaijani' },
-    { code: 'Basque', name: 'Basque' },
-    { code: 'Belarusian', name: 'Belarusian' },
-    { code: 'Bengali', name: 'Bengali' },
-    { code: 'Bosnian', name: 'Bosnian' },
-    { code: 'Bulgarian', name: 'Bulgarian' },
-    { code: 'Catalan', name: 'Catalan' },
-    { code: 'Cebuano', name: 'Cebuano' },
-    { code: 'Chichewa', name: 'Chichewa' },
-    { code: 'Chinese (Simplified)', name: 'Chinese (Simplified)' },
-    { code: 'Chinese (Traditional)', name: 'Chinese (Traditional)' },
-    { code: 'Corsican', name: 'Corsican' },
-    { code: 'Croatian', name: 'Croatian' },
-    { code: 'Czech', name: 'Czech' },
-    { code: 'Danish', name: 'Danish' },
-    { code: 'Dutch', name: 'Dutch' },
-    { code: 'English', name: 'English' },
-    { code: 'Esperanto', name: 'Esperanto' },
-    { code: 'Estonian', name: 'Estonian' },
-    { code: 'Filipino', name: 'Filipino' },
-    { code: 'Finnish', name: 'Finnish' },
-    { code: 'French', name: 'French' },
-    { code: 'Frisian', name: 'Frisian' },
-    { code: 'Galician', name: 'Galician' },
-    { code: 'Georgian', name: 'Georgian' },
-    { code: 'German', name: 'German' },
-    { code: 'Greek', name: 'Greek' },
-    { code: 'Gujarati', name: 'Gujarati' },
-    { code: 'Haitian Creole', name: 'Haitian Creole' },
-    { code: 'Hausa', name: 'Hausa' },
-    { code: 'Hawaiian', name: 'Hawaiian' },
-    { code: 'Hebrew', name: 'Hebrew' },
-    { code: 'Hindi', name: 'Hindi' },
-    { code: 'Hmong', name: 'Hmong' },
-    { code: 'Hungarian', name: 'Hungarian' },
-    { code: 'Icelandic', name: 'Icelandic' },
-    { code: 'Igbo', name: 'Igbo' },
-    { code: 'Indonesian', name: 'Indonesian' },
-    { code: 'Irish', name: 'Irish' },
-    { code: 'Italian', name: 'Italian' },
-    { code: 'Japanese', name: 'Japanese' },
-    { code: 'Javanese', name: 'Javanese' },
-    { code: 'Kannada', name: 'Kannada' },
-    { code: 'Kazakh', name: 'Kazakh' },
-    { code: 'Khmer', name: 'Khmer' },
-    { code: 'Kinyarwanda', name: 'Kinyarwanda' },
-    { code: 'Korean', name: 'Korean' },
-    { code: 'Kurdish (Kurmanji)', name: 'Kurdish (Kurmanji)' },
-    { code: 'Kyrgyz', name: 'Kyrgyz' },
-    { code: 'Lao', name: 'Lao' },
-    { code: 'Latin', name: 'Latin' },
-    { code: 'Latvian', name: 'Latvian' },
-    { code: 'Lithuanian', name: 'Lithuanian' },
-    { code: 'Luxembourgish', name: 'Luxembourgish' },
-    { code: 'Macedonian', name: 'Macedonian' },
-    { code: 'Malagasy', name: 'Malagasy' },
-    { code: 'Malay', name: 'Malay' },
-    { code: 'Malayalam', name: 'Malayalam' },
-    { code: 'Maltese', name: 'Maltese' },
-    { code: 'Maori', name: 'Maori' },
-    { code: 'Marathi', name: 'Marathi' },
-    { code: 'Mongolian', name: 'Mongolian' },
-    { code: 'Myanmar (Burmese)', name: 'Myanmar (Burmese)' },
-    { code: 'Nepali', name: 'Nepali' },
-    { code: 'Norwegian', name: 'Norwegian' },
-    { code: 'Odia (Oriya)', name: 'Odia (Oriya)' },
-    { code: 'Pashto', name: 'Pashto' },
-    { code: 'Persian', name: 'Persian' },
-    { code: 'Polish', name: 'Polish' },
-    { code: 'Portuguese', name: 'Portuguese' },
-    { code: 'Punjabi', name: 'Punjabi' },
-    { code: 'Romanian', name: 'Romanian' },
-    { code: 'Russian', name: 'Russian' },
-    { code: 'Samoan', name: 'Samoan' },
-    { code: 'Scots Gaelic', name: 'Scots Gaelic' },
-    { code: 'Serbian', name: 'Serbian' },
-    { code: 'Sesotho', name: 'Sesotho' },
-    { code: 'Shona', name: 'Shona' },
-    { code: 'Sindhi', name: 'Sindhi' },
-    { code: 'Sinhala', name: 'Sinhala' },
-    { code: 'Slovak', name: 'Slovak' },
-    { code: 'Slovenian', name: 'Slovenian' },
-    { code: 'Somali', name: 'Somali' },
-    { code: 'Spanish', name: 'Spanish' },
-    { code: 'Sundanese', name: 'Sundanese' },
-    { code: 'Swahili', name: 'Swahili' },
-    { code: 'Swedish', name: 'Swedish' },
-    { code: 'Tajik', name: 'Tajik' },
-    { code: 'Tamil', name: 'Tamil' },
-    { code: 'Tatar', name: 'Tatar' },
-    { code: 'Telugu', name: 'Telugu' },
-    { code: 'Thai', name: 'Thai' },
-    { code: 'Turkish', name: 'Turkish' },
-    { code: 'Turkmen', name: 'Turkmen' },
-    { code: 'Ukrainian', name: 'Ukrainian' },
-    { code: 'Urdu', name: 'Urdu' },
-    { code: 'Uyghur', name: 'Uyghur' },
-    { code: 'Uzbek', name: 'Uzbek' },
-    { code: 'Vietnamese', name: 'Vietnamese' },
-    { code: 'Welsh', name: 'Welsh' },
-    { code: 'Xhosa', name: 'Xhosa' },
-    { code: 'Yiddish', name: 'Yiddish' },
-    { code: 'Yoruba', name: 'Yoruba' },
-    { code: 'Zulu', name: 'Zulu' }
+// --- CONSTANTS ---
+const QUICK_SUGGESTIONS = [
+    { text: "Fever remedies 🤒", icon: "fa-thermometer-half" },
+    { text: "Find Paracetamol 💊", icon: "fa-search" },
+    { text: "Pharmacy location 📍", icon: "fa-map-marker-alt" },
+    { text: "Stomach pain help 🤢", icon: "fa-dizzy" },
+    { text: "Store timings ⏰", icon: "fa-clock" },
+    { text: "Skin care tips ✨", icon: "fa-sparkles" }
 ];
 
-// Moved outside component to prevent recreation and scope issues
+const LANGUAGES = [
+    { code: 'English', name: 'English', flag: '🇺🇸' },
+    { code: 'Hindi', name: 'हिन्दी (Hindi)', flag: '🇮🇳' },
+    { code: 'Bengali', name: 'বাংলা (Bengali)', flag: '🇮🇳' },
+    { code: 'Urdu', name: 'اردو (Urdu)', flag: '🇵🇰' },
+    { code: 'Arabic', name: 'العربية (Arabic)', flag: '🇸🇦' },
+    { code: 'Spanish', name: 'Español (Spanish)', flag: '🇪🇸' },
+    { code: 'French', name: 'Français (French)', flag: '🇫🇷' },
+    { code: 'German', name: 'Deutsch (German)', flag: '🇩🇪' },
+    { code: 'Japanese', name: '日本語 (Japanese)', flag: '🇯🇵' },
+    { code: 'Telugu', name: 'తెలుగు (Telugu)', flag: '🇮🇳' },
+    { code: 'Tamil', name: 'தமிழ் (Tamil)', flag: '🇮🇳' },
+    { code: 'Marathi', name: 'मరాठी (Marathi)', flag: '🇮🇳' },
+    { code: 'Gujarati', name: 'ગુજરાતી (Gujarati)', flag: '🇮🇳' },
+    { code: 'Kannada', name: 'ಕನ್ನಡ (Kannada)', flag: '🇮🇳' },
+    { code: 'Malayalam', name: 'മലയാളം (Malayalam)', flag: '🇮🇳' },
+    { code: 'Punjabi', name: 'ਪੰਜਾਬੀ (Punjabi)', flag: '🇮🇳' },
+    { code: 'Chinese', name: '中文 (Chinese)', flag: '🇨🇳' },
+    { code: 'Russian', name: 'Русский (Russian)', flag: '🇷🇺' },
+    { code: 'Portuguese', name: 'Português (Portuguese)', flag: '🇵🇹' },
+    { code: 'Afrikaans', name: 'Afrikaans', flag: '🇿🇦' },
+    { code: 'Albanian', name: 'Shqip (Albanian)', flag: '🇦🇱' },
+    { code: 'Amharic', name: 'አማርኛ (Amharic)', flag: '🇪🇹' },
+    { code: 'Armenian', name: 'Հայերեն (Armenian)', flag: '🇦🇲' },
+    { code: 'Azerbaijani', name: 'Azərbaycan (Azerbaijani)', flag: '🇦🇿' },
+    { code: 'Basque', name: 'Euskara (Basque)', flag: '🇪🇸' },
+    { code: 'Belarusian', name: 'Беларуская (Belarusian)', flag: '🇧🇾' },
+    { code: 'Bosnian', name: 'Bosanski (Bosnian)', flag: '🇧🇦' },
+    { code: 'Bulgarian', name: 'Български (Bulgarian)', flag: '🇧🇬' },
+    { code: 'Catalan', name: 'Català (Catalan)', flag: '🇪🇸' },
+    { code: 'Croatian', name: 'Hrvatski (Croatian)', flag: '🇭🇷' },
+    { code: 'Czech', name: 'Čeština (Czech)', flag: '🇨🇿' },
+    { code: 'Danish', name: 'Dansk (Danish)', flag: '🇩🇰' },
+    { code: 'Dutch', name: 'Nederlands (Dutch)', flag: '🇳🇱' },
+    { code: 'Esperanto', name: 'Esperanto', flag: '🌍' },
+    { code: 'Estonian', name: 'Eesti (Estonian)', flag: '🇪🇪' },
+    { code: 'Filipino', name: 'Filipino', flag: '🇵🇭' },
+    { code: 'Finnish', name: 'Suomi (Finnish)', flag: '🇫🇮' },
+    { code: 'Georgian', name: 'ქართული (Georgian)', flag: '🇬🇪' },
+    { code: 'Greek', name: 'Ελληνικά (Greek)', flag: '🇬🇷' },
+    { code: 'Hebrew', name: 'עברית (Hebrew)', flag: '🇮🇱' },
+    { code: 'Hungarian', name: 'Magyar (Hungarian)', flag: '🇭🇺' },
+    { code: 'Icelandic', name: 'Íslenska (Icelandic)', flag: '🇮🇸' },
+    { code: 'Indonesian', name: 'Bahasa Indonesia', flag: '🇮🇩' },
+    { code: 'Irish', name: 'Gaeilge (Irish)', flag: '🇮🇪' },
+    { code: 'Italian', name: 'Italiano (Italian)', flag: '🇮🇹' },
+    { code: 'Kazakh', name: 'Қазақ (Kazakh)', flag: '🇰🇿' },
+    { code: 'Khmer', name: 'ខ្មែر (Khmer)', flag: '🇰🇭' },
+    { code: 'Korean', name: '한국어 (Korean)', flag: '🇰🇷' },
+    { code: 'Latvian', name: 'Latviešu (Latvian)', flag: '🇱🇻' },
+    { code: 'Lithuanian', name: 'Lietuvių (Lithuanian)', flag: '🇱🇹' },
+    { code: 'Malay', name: 'Bahasa Melayu (Malay)', flag: '🇲🇾' },
+    { code: 'Mongolian', name: 'Монгол (Mongolian)', flag: '🇲🇳' },
+    { code: 'Nepali', name: 'नेपाली (Nepali)', flag: '🇳🇵' },
+    { code: 'Norwegian', name: 'Norsk (Norwegian)', flag: '🇳🇴' },
+    { code: 'Pashto', name: 'ਪښتو (Pashto)', flag: '🇦🇫' },
+    { code: 'Persian', name: 'فارسی (Persian)', flag: '🇮🇷' },
+    { code: 'Polish', name: 'Polski (Polish)', flag: '🇵🇱' },
+    { code: 'Romanian', name: 'Română (Romanian)', flag: '🇷🇴' },
+    { code: 'Serbian', name: 'Српски (Serbian)', flag: '🇷🇸' },
+    { code: 'Sinhala', name: 'සිංහල (Sinhala)', flag: '🇱🇰' },
+    { code: 'Slovak', name: 'Slovenčina (Slovak)', flag: '🇸🇰' },
+    { code: 'Slovenian', name: 'Slovenščina (Slovenian)', flag: '🇸🇮' },
+    { code: 'Swahili', name: 'Kiswahili (Swahili)', flag: '🇰🇪' },
+    { code: 'Swedish', name: 'Svenska (Swedish)', flag: '🇸🇪' },
+    { code: 'Thai', name: 'ไทย (Thai)', flag: '🇹🇭' },
+    { code: 'Turkish', name: 'Türkçe (Turkish)', flag: '🇹🇷' },
+    { code: 'Ukrainian', name: 'Українська (Ukrainian)', flag: '🇺🇦' },
+    { code: 'Vietnamese', name: 'Tiếng Việt (Vietnamese)', flag: '🇻🇳' },
+    { code: 'Welsh', name: 'Cymraeg (Welsh)', flag: '🏴󠁧󠁢󠁷󠁬󠁿' },
+].sort((a, b) => a.name.localeCompare(b.name));
+
 const WELCOME_MSG = "Hello! 👋 I'm your **AI Pharmacist**.\n\nAsk me about:\n💊 Medicine uses\n🤒 Common symptoms\n🌿 Home remedies\n🔍 Find specific medicines\n\n**Note:** I am an AI, not a doctor. Please consult a professional for serious advice.";
+
+const SYSTEM_INSTRUCTION = `You are a warm, caring, and friendly AI Pharmacist assistant for 'New Lucky Pharma', located in Hanwara, Jharkhand. Your goal is to help users with their health queries in a supportive and reassuring manner. 
+Keep your responses concise and focused on healthcare. End medical suggestions with "Please consult a doctor for serious advice. Stay safe! 💚"`;
 
 interface AIChatProps {
     onViewProduct?: (product: Product) => void;
@@ -156,209 +149,75 @@ interface AIChatProps {
 const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isConfirmingClear, setIsConfirmingClear] = useState(false);
-    
-    // Unread state for notification dot (Initially true for visibility)
     const [hasUnread, setHasUnread] = useState(true);
-    
-    // Greeting Bubble State
     const [showBubble, setShowBubble] = useState(false);
-    
-    // Translate Widget State
     const [showTranslate, setShowTranslate] = useState(false);
     const [searchLang, setSearchLang] = useState('');
     const [selectedLanguage, setSelectedLanguage] = useState('English');
+    const [isOnline] = useState(isAIConfigured());
     
-    // Audio State
-    const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
-    const [isAudioLoading, setIsAudioLoading] = useState(false);
-    
-    // Refs
-    const isOpenRef = useRef(isOpen);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const sourceRef = useRef<AudioBufferSourceNode | null>(null);
-
-    // Lazy initialization for persistence
+    // UI State
     const [messages, setMessages] = useState<ChatMessage[]>(() => {
         try {
             const savedHistory = localStorage.getItem('chat_history');
-            if (savedHistory) {
-                return JSON.parse(savedHistory);
-            }
-        } catch (e) {
-            console.error("Failed to parse chat history", e);
-        }
-        return [{
-            id: 'welcome',
-            text: WELCOME_MSG,
-            isUser: false,
-            timestamp: Date.now()
-        }];
+            if (savedHistory) return JSON.parse(savedHistory);
+        } catch (e) {}
+        return [{ id: 'welcome', text: WELCOME_MSG, isUser: false, timestamp: Date.now() }];
     });
-
     const [inputValue, setInputValue] = useState('');
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    
-    // UI States for actions
+    const [isScanning, setIsScanning] = useState(false);
     const [copiedId, setCopiedId] = useState<string | null>(null);
 
+    // Audio / Live State
+    const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+    const [isAudioLoading, setIsAudioLoading] = useState(false);
+    const [isLive, setIsLive] = useState(false);
+    const [liveStatusText, setLiveStatusText] = useState("Connecting...");
+    const [currentTranscription, setCurrentTranscription] = useState("");
+
+    // Refs
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const sourceRef = useRef<AudioBufferSourceNode | null>(null);
+    const liveSessionRef = useRef<any>(null);
+    const liveAudioContextRef = useRef<AudioContext | null>(null);
+    const liveNextStartTimeRef = useRef(0);
+    const liveSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const scanInputRef = useRef<HTMLInputElement>(null);
 
-    // Quick suggestions
-    const suggestions = ["Medicine for headache", "Price of Dolo?", "Pet dard upay", "Find cough syrup"];
-
-    // Sync ref and handle unread state
+    // Sync history
     useEffect(() => {
-        isOpenRef.current = isOpen;
-        if (isOpen) {
-            setHasUnread(false);
-            setShowBubble(false); // Hide bubble when chat opens
-        }
-    }, [isOpen]);
+        localStorage.setItem('chat_history', JSON.stringify(messages));
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
 
-    // Show greeting bubble after a delay on first load
+    // Cleanup
+    useEffect(() => {
+        return () => {
+            stopAudio();
+            stopLiveSession();
+        };
+    }, []);
+
+    // GREETING LOGIC
     useEffect(() => {
         const timer = setTimeout(() => {
-            // Only show if chat hasn't been opened and no conversation started
-            if (!isOpen && messages.length <= 1) { 
-                setShowBubble(true);
-            }
-        }, 4000); // 4 seconds delay
+            if (!isOpen && messages.length <= 1) setShowBubble(true);
+        }, 4000);
         return () => clearTimeout(timer);
     }, [isOpen, messages.length]);
 
-    // Handle Mobile Back Button / Gesture
-    useEffect(() => {
-        if (isOpen) {
-            // Push a state to history so the back button catches this state instead of using previous route
-            window.history.pushState(null, '', window.location.href);
-
-            const handlePopState = () => {
-                // If user presses back, close the chat
-                setIsOpen(false);
-            };
-
-            window.addEventListener('popstate', handlePopState);
-
-            return () => {
-                window.removeEventListener('popstate', handlePopState);
-            };
-        }
-    }, [isOpen]);
-
-    // Save history to local storage whenever messages change
-    useEffect(() => {
-        if (messages.length > 0) {
-            localStorage.setItem('chat_history', JSON.stringify(messages));
-        }
-    }, [messages]);
-
-    // Cleanup audio on unmount
-    useEffect(() => {
-        return () => {
-            if (sourceRef.current) {
-                sourceRef.current.stop();
-            }
-            if (audioContextRef.current) {
-                audioContextRef.current.close();
-            }
-        };
-    }, []);
-
-    // Listen for 'ask-ai' custom events from other components
-    useEffect(() => {
-        const handleAskAI = (e: any) => {
-            const { productName, description, customQuery } = e.detail;
-            
-            let query = "";
-            if (customQuery) {
-                query = customQuery;
-            } else if (productName) {
-                query = `Can you explain what ${productName} is used for and provide some health tips? \n\nDescription context: ${description}`;
-            } else {
-                return; // Invalid event data
-            }
-            
-            setIsOpen(true);
-            
-            // Trigger the AI request
-            handleExternalQuery(query);
-        };
-
-        window.addEventListener('ask-ai', handleAskAI);
-        return () => window.removeEventListener('ask-ai', handleAskAI);
-    }, []);
-
-    const toggleChat = () => setIsOpen(!isOpen);
-
-    const handleClearHistory = () => {
-        if (isConfirmingClear) {
-            // User confirmed, perform clear
-            const defaultMessage: ChatMessage = {
-                id: 'welcome',
-                text: WELCOME_MSG,
-                isUser: false,
-                timestamp: Date.now()
-            };
-            setMessages([defaultMessage]);
-            setIsConfirmingClear(false);
-        } else {
-            // First click - ask for confirmation
-            setIsConfirmingClear(true);
-            // Auto-reset confirmation state after 3 seconds
-            setTimeout(() => setIsConfirmingClear(false), 3000);
-        }
+    const toggleChat = () => {
+        setIsOpen(!isOpen);
+        if (!isOpen) setHasUnread(false);
     };
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages, isOpen]);
-
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setSelectedImage(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const triggerFileInput = () => {
-        fileInputRef.current?.click();
-    };
-
-    const removeImage = () => {
-        setSelectedImage(null);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
-    };
-
-    const handleCopy = async (id: string, text: string) => {
-        try {
-            await navigator.clipboard.writeText(text);
-            setCopiedId(id);
-            setTimeout(() => setCopiedId(null), 2000);
-        } catch (err) {
-            console.error('Failed to copy text: ', err);
-        }
-    };
-
-    // AUDIO HANDLERS
     const stopAudio = () => {
         if (sourceRef.current) {
-            try {
-                sourceRef.current.stop();
-            } catch (e) {
-                // Ignore error if already stopped
-            }
+            try { sourceRef.current.stop(); } catch (e) {}
             sourceRef.current = null;
         }
         setPlayingMessageId(null);
@@ -366,390 +225,285 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
     };
 
     const playAudio = async (id: string, text: string) => {
-        // If already playing this message, stop it
-        if (playingMessageId === id) {
-            stopAudio();
-            return;
-        }
-
-        // Stop any currently playing audio
+        if (playingMessageId === id) { stopAudio(); return; }
         stopAudio();
-
         setPlayingMessageId(id);
         setIsAudioLoading(true);
-
         try {
-            // Initialize AudioContext on user gesture
             if (!audioContextRef.current) {
                 audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
             }
-            
             const ctx = audioContextRef.current;
-            if (ctx.state === 'suspended') {
-                await ctx.resume();
-            }
-
-            // Generate Speech using Gemini 2.5 TTS Model
+            if (ctx.state === 'suspended') await ctx.resume();
             const base64Audio = await generateSpeech(text);
-            
-            if (!base64Audio) {
-                console.error("No audio data returned");
-                setPlayingMessageId(null);
-                setIsAudioLoading(false);
-                return;
-            }
-
-            // Decode and Play
-            const audioBuffer = await decodeAudioData(decodeBase64(base64Audio), ctx, 24000, 1);
-            
+            if (!base64Audio) { setPlayingMessageId(null); setIsAudioLoading(false); return; }
+            const audioBuffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
             const source = ctx.createBufferSource();
             source.buffer = audioBuffer;
             source.connect(ctx.destination);
-            
-            source.onended = () => {
-                setPlayingMessageId(null);
-                sourceRef.current = null;
-            };
-            
+            source.onended = () => { setPlayingMessageId(null); sourceRef.current = null; };
             sourceRef.current = source;
             source.start();
             setIsAudioLoading(false);
-
         } catch (e) {
-            console.error("Audio playback failed", e);
+            console.error(e);
             setPlayingMessageId(null);
             setIsAudioLoading(false);
         }
     };
 
-    const handleExternalQuery = async (text: string) => {
-        const newMessage: ChatMessage = {
-            id: Date.now().toString(),
-            text: text,
-            isUser: true,
-            timestamp: Date.now()
-        };
-
-        setMessages(prev => [...prev, newMessage]);
-        setIsLoading(true);
-
-        const aiResponse = await getGeminiResponse(text, undefined, selectedLanguage);
-
-        const aiMessage: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            text: aiResponse.text,
-            isUser: false,
-            timestamp: Date.now(),
-            products: aiResponse.products,
-            groundingSources: aiResponse.groundingSources
-        };
-
-        setMessages(prev => [...prev, aiMessage]);
-        setIsLoading(false);
-
-        if (!isOpenRef.current) {
-            setHasUnread(true);
+    const copyToClipboard = async (id: string, text: string) => {
+        try {
+            const cleanText = text.replace(/[*_#]/g, '');
+            await navigator.clipboard.writeText(cleanText);
+            setCopiedId(id);
+            setTimeout(() => setCopiedId(null), 2000);
+        } catch (err) {
+            console.error('Failed to copy', err);
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent, overrideText?: string) => {
+    // --- LIVE TALK LOGIC ---
+    const startLiveSession = async () => {
+        if (isLive) return;
+        setIsLive(true);
+        setLiveStatusText("Initializing microphone...");
+        setCurrentTranscription("");
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+            
+            const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 16000});
+            const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
+            liveAudioContextRef.current = outputCtx;
+
+            let liveInTranscription = "";
+            let liveOutTranscription = "";
+
+            const sessionPromise = ai.live.connect({
+                model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+                callbacks: {
+                    onopen: () => {
+                        setLiveStatusText("Listening...");
+                        const source = inputCtx.createMediaStreamSource(stream);
+                        const scriptProcessor = inputCtx.createScriptProcessor(4096, 1, 1);
+                        scriptProcessor.onaudioprocess = (e) => {
+                            const inputData = e.inputBuffer.getChannelData(0);
+                            const pcmBlob = createBlob(inputData);
+                            sessionPromise.then(session => session.sendRealtimeInput({ media: pcmBlob }));
+                        };
+                        source.connect(scriptProcessor);
+                        scriptProcessor.connect(inputCtx.destination);
+                        (window as any)._liveInputCtx = inputCtx;
+                        (window as any)._liveStream = stream;
+                    },
+                    onmessage: async (message: LiveServerMessage) => {
+                        if (message.serverContent?.inputTranscription) {
+                            liveInTranscription += message.serverContent.inputTranscription.text;
+                            setCurrentTranscription("You: " + liveInTranscription);
+                        }
+                        if (message.serverContent?.outputTranscription) {
+                            liveOutTranscription += message.serverContent.outputTranscription.text;
+                            setCurrentTranscription("AI: " + liveOutTranscription);
+                        }
+                        if (message.serverContent?.turnComplete) {
+                            if (liveInTranscription || liveOutTranscription) {
+                                setMessages(prev => [
+                                    ...prev,
+                                    { id: Date.now().toString(), text: liveInTranscription, isUser: true, timestamp: Date.now() },
+                                    { id: (Date.now()+1).toString(), text: liveOutTranscription, isUser: false, timestamp: Date.now() }
+                                ]);
+                            }
+                            liveInTranscription = "";
+                            liveOutTranscription = "";
+                        }
+                        const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+                        if (base64Audio) {
+                            liveNextStartTimeRef.current = Math.max(liveNextStartTimeRef.current, outputCtx.currentTime);
+                            const audioBuffer = await decodeAudioData(decode(base64Audio), outputCtx, 24000, 1);
+                            const source = outputCtx.createBufferSource();
+                            source.buffer = audioBuffer;
+                            source.connect(outputCtx.destination);
+                            source.addEventListener('ended', () => liveSourcesRef.current.delete(source));
+                            source.start(liveNextStartTimeRef.current);
+                            liveNextStartTimeRef.current += audioBuffer.duration;
+                            liveSourcesRef.current.add(source);
+                        }
+                        if (message.serverContent?.interrupted) {
+                            liveSourcesRef.current.forEach(s => { try { s.stop(); } catch(e){} });
+                            liveSourcesRef.current.clear();
+                            liveNextStartTimeRef.current = 0;
+                        }
+                    },
+                    onerror: () => { setLiveStatusText("Connection error."); stopLiveSession(); },
+                    onclose: () => { setIsLive(false); }
+                },
+                config: {
+                    responseModalities: [Modality.AUDIO],
+                    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
+                    systemInstruction: SYSTEM_INSTRUCTION,
+                    inputAudioTranscription: {},
+                    outputAudioTranscription: {}
+                }
+            });
+
+            liveSessionRef.current = await sessionPromise;
+        } catch (err) {
+            console.error(err);
+            setIsLive(false);
+        }
+    };
+
+    const stopLiveSession = () => {
+        if (liveSessionRef.current) {
+            liveSessionRef.current.close();
+            liveSessionRef.current = null;
+        }
+        if ((window as any)._liveInputCtx) (window as any)._liveInputCtx.close();
+        if ((window as any)._liveStream) (window as any)._liveStream.getTracks().forEach((t: any) => t.stop());
+        liveSourcesRef.current.forEach(s => { try { s.stop(); } catch(e){} });
+        liveSourcesRef.current.clear();
+        setIsLive(false);
+        setCurrentTranscription("");
+    };
+
+    // --- SCAN / IMAGE HELPERS ---
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onloadend = () => setSelectedImage(reader.result as string);
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    };
+
+    const handleCameraScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setIsScanning(true);
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const base64Data = reader.result as string;
+                const prompt = "Identify the brand name of the medicine in this image. Return ONLY the name as a clean string.";
+                const response = await getGeminiResponse(prompt, base64Data);
+                if (response.text) setInputValue(response.text.replace(/[*_#]/g, '').trim());
+                setIsScanning(false);
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent | null, overrideText?: string) => {
         if (e) e.preventDefault();
-        
         const textToSubmit = overrideText || inputValue;
-
         if (!textToSubmit.trim() && !selectedImage) return;
-
         const userText = textToSubmit.trim();
         const userImage = selectedImage;
-        
-        const newMessage: ChatMessage = {
-            id: Date.now().toString(),
-            text: userText,
-            image: userImage || undefined,
-            isUser: true,
-            timestamp: Date.now()
-        };
-
-        setMessages(prev => [...prev, newMessage]);
+        setMessages(prev => [...prev, { id: Date.now().toString(), text: userText, image: userImage || undefined, isUser: true, timestamp: Date.now() }]);
         setInputValue('');
         setSelectedImage(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
         setIsLoading(true);
-
-        // Pass selectedLanguage to getGeminiResponse
         const aiResponse = await getGeminiResponse(userText, userImage || undefined, selectedLanguage);
-
-        const aiMessage: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            text: aiResponse.text,
-            isUser: false,
-            timestamp: Date.now(),
-            products: aiResponse.products,
-            groundingSources: aiResponse.groundingSources
-        };
-
-        setMessages(prev => [...prev, aiMessage]);
+        setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), text: aiResponse.text, isUser: false, timestamp: Date.now(), products: aiResponse.products, groundingSources: aiResponse.groundingSources }]);
         setIsLoading(false);
-
-        if (!isOpenRef.current) {
-            setHasUnread(true);
-        }
     };
 
-    // Helper to format text with bold markers and replace asterisks with bullets
     const formatMessageText = (text: string) => {
-        // Replace asterisk bullet points with styled bullet
         const textWithBullets = text.replace(/(^|\n)\*\s/g, '$1• ');
-        
         const parts = textWithBullets.split(/(\*\*.*?\*\*)/g);
         return parts.map((part, index) => {
-            if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={index} className="text-gray-900 font-bold">{part.slice(2, -2)}</strong>;
-            }
+            if (part.startsWith('**') && part.endsWith('**')) return <strong key={index} className="text-gray-900 font-bold">{part.slice(2, -2)}</strong>;
             return <span key={index}>{part}</span>;
         });
     };
 
-    // Custom Language Handling
     const filteredLanguages = LANGUAGES.filter(l => 
-        l.name.toLowerCase().includes(searchLang.toLowerCase())
+        l.name.toLowerCase().includes(searchLang.toLowerCase()) || 
+        l.code.toLowerCase().includes(searchLang.toLowerCase())
     );
 
-    const handleLanguageSelect = (langCode: string) => {
-        setSelectedLanguage(langCode);
-        setShowTranslate(false);
+    const getDateLabel = (timestamp: number) => {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now.getTime() - date.getTime();
+        const dayDiff = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+        if (dayDiff === 0 && date.getDate() === now.getDate()) return 'Today';
+        if (dayDiff === 1 || (dayDiff === 0 && date.getDate() !== now.getDate())) return 'Yesterday';
+        return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
     };
+
+    const isInitialScreen = messages.length <= 1 && !isLoading;
 
     return (
         <>
-            {/* Proactive Greeting Bubble */}
-            <div 
-                className={`fixed bottom-24 right-6 z-[85] max-w-[280px] transform transition-all duration-500 origin-bottom-right ${showBubble && !isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-4 pointer-events-none'}`}
-            >
-                <div className="bg-white p-4 rounded-2xl shadow-xl border border-medical-50 relative">
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); setShowBubble(false); }}
-                        className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 transition-colors p-1"
-                    >
-                        <i className="fas fa-times text-xs"></i>
-                    </button>
-                    <div className="flex gap-3 items-start">
-                        <div className="w-10 h-10 rounded-full bg-medical-50 flex items-center justify-center flex-shrink-0 border border-medical-100 text-medical-600">
-                             <i className="fas fa-user-md"></i>
-                        </div>
-                        <div className="pr-4">
-                            <p className="font-bold text-gray-900 text-sm mb-1">Hi there! 👋</p>
-                            <p className="text-xs text-gray-600 leading-relaxed">
-                                I'm your AI Pharmacist. Need help finding a <span className="font-bold text-medical-600">medicine</span> or <span className="font-bold text-medical-600">health tip</span>?
-                            </p>
-                        </div>
-                    </div>
-                    <div className="absolute -bottom-2 right-8 w-4 h-4 bg-white border-b border-r border-medical-50 transform rotate-45"></div>
-                </div>
-            </div>
-
-            {/* FAB - 3D Green Ball Design */}
-            <button 
-                onClick={toggleChat}
-                className={`fixed bottom-6 right-6 z-[90] group flex items-center justify-center outline-none focus:outline-none`}
-                aria-label="Chat with AI Pharmacist"
-            >
-                <span className="absolute inline-flex h-full w-full rounded-full bg-medical-400 opacity-20 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></span>
-                <span className="absolute inline-flex h-[85%] w-[85%] rounded-full bg-medical-500 opacity-40 blur-md animate-pulse"></span>
-                
-                <div className={`
-                    relative w-16 h-16 rounded-full 
-                    bg-white
-                    flex items-center justify-center 
-                    border-2 border-medical-100
-                    shadow-[0_4px_20px_rgba(22,163,74,0.15)]
-                    transition-all duration-300
-                    transform
-                    hover:-translate-y-1 hover:shadow-medical-200
-                `}>
-                    <i className="fas fa-user-md text-3xl text-medical-600 drop-shadow-sm relative z-10 transition-transform duration-300"></i>
-                    {hasUnread && (
-                        <span className="absolute top-0 right-0 flex h-4 w-4 z-20">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 border-2 border-white shadow-sm"></span>
-                        </span>
-                    )}
-                </div>
+            {/* FAB */}
+            <button onClick={toggleChat} className="fixed bottom-6 right-6 z-[90] w-16 h-16 rounded-full bg-white border-2 border-medical-100 shadow-xl flex items-center justify-center transition-all hover:-translate-y-1">
+                <i className="fas fa-user-md text-3xl text-medical-600"></i>
+                {hasUnread && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-white"></span>}
             </button>
 
             {/* Modal Overlay */}
-            <div 
-                className={`fixed inset-0 z-[100] flex items-end sm:items-center justify-center px-0 sm:px-4 bg-black/50 transition-all duration-300 ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
-                onClick={(e) => e.target === e.currentTarget && toggleChat()}
-            >
-                {/* Chat Container */}
-                <div 
-                    className={`bg-white w-full sm:max-w-[450px] h-[90vh] sm:h-[650px] sm:rounded-[2rem] rounded-t-[2rem] shadow-2xl flex flex-col transform transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) relative overflow-hidden ${isOpen ? 'translate-y-0 scale-100' : 'translate-y-full sm:translate-y-10 scale-95'}`}
-                >
+            <div className={`fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 transition-all ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={(e) => e.target === e.currentTarget && toggleChat()}>
+                <div className={`bg-white w-full sm:max-w-[450px] h-[90vh] sm:h-[650px] sm:rounded-[2rem] rounded-t-[2rem] flex flex-col transition-all overflow-hidden relative ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+                    
                     {/* Header */}
-                    <div className="bg-medical-600 h-20 flex flex-col justify-center px-6 shadow-md relative z-20">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="relative">
-                                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-medical-200 shadow-sm overflow-hidden text-medical-600">
-                                        <i className="fas fa-user-md text-xl"></i>
-                                    </div>
-                                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full"></div>
-                                </div>
-                                <div className="flex flex-col">
-                                    <h3 className="text-white font-bold text-lg leading-tight">AI Pharmacist</h3>
-                                    <div className="flex items-center gap-1.5 opacity-90">
-                                        <span className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></span>
-                                        <span className="text-[10px] text-white font-medium">Online</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button 
-                                    onClick={handleClearHistory}
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-white transition-all duration-300 ${isConfirmingClear ? 'bg-red-500 hover:bg-red-600 animate-pulse' : 'bg-white/10 hover:bg-white/20'}`}
-                                    title={isConfirmingClear ? "Confirm Clear?" : "Clear Chat"}
-                                >
-                                    <i className={`fas ${isConfirmingClear ? 'fa-check' : 'fa-trash-alt'} text-xs`}></i>
-                                </button>
-                                <button 
-                                    onClick={toggleChat} 
-                                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
-                                >
-                                    <i className="fas fa-times text-sm"></i>
-                                </button>
+                    <div className="bg-medical-600 h-20 px-6 flex items-center justify-between shadow-md text-white">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-medical-600"><i className="fas fa-user-md text-xl"></i></div>
+                            <div>
+                                <h3 className="font-bold">AI Pharmacist</h3>
+                                <div className="flex items-center gap-1.5 opacity-90"><span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></span><span className="text-[10px] uppercase font-bold tracking-wider">{isOnline ? 'Online' : 'Offline'}</span></div>
                             </div>
                         </div>
+                        <button onClick={toggleChat} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i className="fas fa-times text-sm"></i></button>
                     </div>
 
                     {/* Chat Area */}
-                    <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 bg-[#ECE5DD] scroll-smooth relative" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundBlendMode: 'soft-light', backgroundSize: '400px' }}>
-                        {messages.map((msg, index) => {
-                            const showDate = index === 0 || 
-                                new Date(msg.timestamp).toLocaleDateString() !== new Date(messages[index - 1].timestamp).toLocaleDateString();
-                            const dateLabel = new Date(msg.timestamp).toLocaleDateString() === new Date().toLocaleDateString() ? 'Today' : new Date(msg.timestamp).toLocaleDateString();
-                            
-                            const isPlayingThis = playingMessageId === msg.id;
-
+                    <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 bg-[#ECE5DD] relative" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundBlendMode: 'soft-light' }}>
+                        {isLive && (
+                            <div className="absolute inset-0 bg-medical-900/90 backdrop-blur-md z-[60] flex flex-col items-center justify-center text-white p-8 text-center animate-fade-in">
+                                <i className="fas fa-microphone text-4xl text-medical-200 mb-6 animate-pulse"></i>
+                                <h4 className="text-2xl font-bold mb-2">Live Session</h4>
+                                <p className="text-medical-200 mb-8 font-medium">{liveStatusText}</p>
+                                <div className="bg-white/10 rounded-2xl p-6 w-full max-w-sm mb-8 min-h-[120px] italic text-lg">{currentTranscription || "Listening..."}</div>
+                                <button onClick={stopLiveSession} className="px-10 py-4 bg-red-500 rounded-full font-bold shadow-xl flex items-center gap-3"><i className="fas fa-stop"></i> End</button>
+                            </div>
+                        )}
+                        {messages.map((msg, idx) => {
+                            const showDate = idx === 0 || getDateLabel(msg.timestamp) !== getDateLabel(messages[idx-1].timestamp);
                             return (
                                 <React.Fragment key={msg.id}>
                                     {showDate && (
-                                        <div className="flex justify-center my-4 relative z-0">
-                                            <span className="bg-[#dcf8c6] text-gray-600 text-[10px] font-bold uppercase tracking-wider py-1 px-2 rounded-lg shadow-sm opacity-80">
-                                                {dateLabel}
+                                        <div className="flex justify-center my-4 sticky top-0 z-10">
+                                            <span className="bg-medical-100/80 backdrop-blur px-3 py-1 rounded-full text-[10px] font-bold text-medical-800 shadow-sm uppercase tracking-wider">
+                                                {getDateLabel(msg.timestamp)}
                                             </span>
                                         </div>
                                     )}
-                                    <div className={`flex w-full mb-1 ${msg.isUser ? 'justify-end' : 'justify-start'}`}>
-                                        
-                                        {!msg.isUser && (
-                                            <div className="flex-shrink-0 mr-2 mt-1 self-start">
-                                                 <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-100 text-medical-600">
-                                                     <i className="fas fa-user-md text-sm"></i>
-                                                 </div>
-                                            </div>
-                                        )}
+                                    <div className={`flex w-full mb-2 items-end gap-2 ${msg.isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                                        {/* Logo / Avatar */}
+                                        <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm border shadow-sm ${msg.isUser ? 'bg-gray-100 border-gray-200 text-black' : 'bg-medical-100 border-medical-200 text-medical-600'}`}>
+                                            <i className={`fas ${msg.isUser ? 'fa-user' : 'fa-user-md'}`}></i>
+                                        </div>
 
-                                        <div className={`flex flex-col max-w-[85%] sm:max-w-[75%] ${msg.isUser ? 'items-end' : 'items-start'}`}>
-                                            
-                                            <div className={`
-                                                relative px-3 py-2 text-sm shadow-[0_1px_0.5px_rgba(0,0,0,0.13)]
-                                                ${msg.isUser 
-                                                    ? 'bg-[#d9fdd3] text-gray-900 rounded-lg rounded-tr-none' // User Green
-                                                    : 'bg-white text-gray-900 rounded-lg rounded-tl-none'} // Bot White
-                                            `}>
-                                                {msg.image && (
-                                                    <div className="mb-2 rounded-lg overflow-hidden border border-black/5">
-                                                        <img src={msg.image} alt="Upload" className="max-w-full h-auto" />
-                                                    </div>
-                                                )}
-
-                                                {/* Text content with improved spacer for timestamp overlap prevention */}
-                                                <div className="text-[14.2px] leading-[19px] whitespace-pre-wrap break-words notranslate relative z-10">
+                                        <div className={`flex flex-col max-w-[75%] ${msg.isUser ? 'items-end' : 'items-start'}`}>
+                                            <div className={`relative px-3 pt-2 pb-1.5 text-sm shadow-sm ${msg.isUser ? 'bg-[#d9fdd3] rounded-lg rounded-tr-none' : 'bg-white rounded-lg rounded-tl-none'}`}>
+                                                {msg.image && <img src={msg.image} className="mb-2 rounded max-w-full border border-gray-100" />}
+                                                <div className="inline leading-[1.4] whitespace-pre-wrap">
                                                     {formatMessageText(msg.text)}
-                                                    {/* Wider spacer (w-28 = 7rem ~ 112px) to prevent overlap with timestamp */}
-                                                    <span className="inline-block w-28 h-4 align-bottom"></span> 
-                                                </div>
-                                                
-                                                {/* Grounding Sources (Map Links) */}
-                                                {msg.groundingSources && msg.groundingSources.length > 0 && (
-                                                    <div className="mt-2 pt-2 border-t border-gray-100 relative z-10">
-                                                        <p className="text-[10px] font-bold text-gray-500 mb-1">Sources:</p>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {msg.groundingSources.map((source, idx) => (
-                                                                <a 
-                                                                    key={idx} 
-                                                                    href={source.url} 
-                                                                    target="_blank" 
-                                                                    rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded text-[10px] font-medium text-blue-600 hover:text-blue-800 transition-colors"
-                                                                >
-                                                                    <i className={`fas ${source.title.toLowerCase().includes('maps') ? 'fa-map-marker-alt' : 'fa-link'}`}></i>
-                                                                    <span className="truncate max-w-[120px]">{source.title}</span>
-                                                                </a>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {/* Timestamp - Absolute Positioned */}
-                                                <div className="absolute bottom-1 right-2 flex items-center gap-1 opacity-60 select-none z-20">
-                                                     <span className="text-[10px] min-w-fit">
-                                                        {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true}).toLowerCase()}
-                                                     </span>
-                                                     {msg.isUser && (
-                                                        <i className="fas fa-check-double text-[10px] text-[#53bdeb]"></i>
-                                                     )}
+                                                    {/* WhatsApp style inline timestamp spacer */}
+                                                    <span className="inline-flex items-center justify-end ml-3 align-bottom text-[9px] opacity-40 leading-none h-[11px] min-w-[45px] select-none pointer-events-none">
+                                                        {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                    </span>
                                                 </div>
                                             </div>
-
-                                            {/* Products Carousel */}
-                                            {msg.products && msg.products.length > 0 && (
-                                                <div className="mt-2 w-full max-w-full -ml-1">
-                                                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar snap-x">
-                                                        {msg.products.map(product => (
-                                                            <div key={product.id} className="min-w-[140px] w-[140px] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden snap-start flex-shrink-0 flex flex-col group">
-                                                                <div className="h-20 bg-gray-50 relative overflow-hidden">
-                                                                    <ProductCardImage src={product.image} alt={product.name} />
-                                                                </div>
-                                                                <div className="p-2 flex flex-col flex-grow">
-                                                                    <h4 className="text-xs font-bold text-gray-800 line-clamp-1 mb-1">{product.name}</h4>
-                                                                    <button 
-                                                                        onClick={() => onViewProduct && onViewProduct(product)}
-                                                                        className="w-full bg-medical-600 text-white hover:bg-medical-700 text-[10px] font-bold py-1.5 rounded-full transition-colors shadow-sm"
-                                                                    >
-                                                                        View
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Actions (Copy & Speak) */}
                                             {!msg.isUser && (
-                                                <div className="flex items-center gap-3 mt-1 ml-1 opacity-70">
-                                                    <button onClick={() => handleCopy(msg.id, msg.text)} className="text-gray-500 hover:text-gray-700 text-[10px] transition flex items-center gap-1" title="Copy">
-                                                        <i className={`fas ${copiedId === msg.id ? 'fa-check text-green-500' : 'fa-copy'}`}></i> Copy
+                                                <div className="flex items-center gap-3 mt-1 px-1">
+                                                    <button onClick={() => playAudio(msg.id, msg.text)} className={`text-[10px] flex items-center gap-1.5 transition-colors ${playingMessageId === msg.id ? 'text-medical-600 font-bold' : 'text-gray-500 hover:text-medical-600'}`}>
+                                                        <i className={`fas ${playingMessageId === msg.id ? 'fa-stop' : 'fa-volume-up'}`}></i> {playingMessageId === msg.id ? 'Stop' : 'Speak'}
                                                     </button>
-                                                    
-                                                    {/* Speak Button */}
-                                                    <button 
-                                                        onClick={() => playAudio(msg.id, msg.text)} 
-                                                        className={`text-[10px] transition flex items-center gap-1 ${isPlayingThis ? 'text-medical-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`} 
-                                                        title={isPlayingThis ? "Stop" : "Read Aloud"}
-                                                    >
-                                                        {isPlayingThis ? (
-                                                            <>
-                                                                <i className="fas fa-stop"></i> Stop
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <i className="fas fa-volume-up"></i> Speak
-                                                            </>
-                                                        )}
-                                                        {isPlayingThis && isAudioLoading && <i className="fas fa-spinner fa-spin ml-1"></i>}
+                                                    <button onClick={() => copyToClipboard(msg.id, msg.text)} className={`text-[10px] flex items-center gap-1.5 transition-colors ${copiedId === msg.id ? 'text-medical-600 font-bold' : 'text-gray-500 hover:text-medical-600'}`}>
+                                                        <i className={`fas ${copiedId === msg.id ? 'fa-check text-green-500' : 'fa-copy'}`}></i> {copiedId === msg.id ? 'Copied!' : 'Copy'}
                                                     </button>
                                                 </div>
                                             )}
@@ -758,160 +512,110 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                 </React.Fragment>
                             );
                         })}
-                        
-                        {/* Typing Indicator */}
-                        {isLoading && (
-                            <div className="flex w-full justify-start mb-2 animate-fade-in">
-                                 <div className="flex-shrink-0 mr-2 mt-1">
-                                     <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-100 text-medical-600">
-                                         <i className="fas fa-user-md text-sm"></i>
-                                     </div>
-                                 </div>
-                                 <div className="bg-white rounded-lg rounded-tl-none shadow-sm px-4 py-3 flex items-center gap-1.5 border border-gray-100">
-                                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0s'}}></div>
-                                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
-                                 </div>
+                        {isLoading && <div className="flex items-center gap-2 ml-12">
+                            <div className="w-8 h-8 rounded-full bg-medical-50 border border-medical-100 flex items-center justify-center text-[10px] text-medical-600">
+                                <i className="fas fa-spinner fa-spin"></i>
                             </div>
-                        )}
+                            <div className="bg-white/80 px-3 py-1 rounded-full text-[10px] text-gray-400 shadow-sm border border-gray-100">AI is thinking...</div>
+                        </div>}
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Footer / Input Area */}
-                    <div className="p-3 bg-[#f0f2f5] border-t border-gray-200 relative z-20">
-                        {/* Image Preview */}
-                        {selectedImage && (
-                            <div className="absolute bottom-full left-4 mb-2 bg-white p-2 rounded-xl shadow-xl border border-gray-200 animate-popup-in">
-                                <div className="relative group">
-                                    <img src={selectedImage} alt="Preview" className="h-16 w-16 object-cover rounded-lg" />
-                                    <button 
-                                        onClick={removeImage}
-                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md hover:scale-110 transition"
-                                    >
-                                        <i className="fas fa-times"></i>
-                                    </button>
+                    {/* Footer */}
+                    <div className="p-3 bg-[#f0f2f5] border-t border-gray-200 relative">
+                        {/* Quick Suggestions Box */}
+                        {isInitialScreen && (
+                            <div className="mb-4 flex flex-col gap-2 animate-fade-in px-1">
+                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                    <i className="fas fa-lightbulb text-yellow-500"></i> Suggestions
+                                </p>
+                                <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar scrollbar-hide">
+                                    {QUICK_SUGGESTIONS.map((suggestion, i) => (
+                                        <button 
+                                            key={i} 
+                                            onClick={() => handleSubmit(null, suggestion.text.replace(/🤒|💊|📍|🤢|⏰|✨/g, '').trim())}
+                                            className="whitespace-nowrap bg-white border border-medical-200 px-3 py-2 rounded-full text-xs font-semibold text-medical-700 hover:bg-medical-50 hover:border-medical-300 transition-all flex items-center gap-2 shadow-sm active:scale-95"
+                                        >
+                                            <i className={`fas ${suggestion.icon} text-medical-500`}></i>
+                                            {suggestion.text}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         )}
 
-                        {/* Custom Language Selector Popup */}
-                        {showTranslate && (
-                            <div className="absolute bottom-full left-4 mb-2 bg-white border border-gray-200 p-0 rounded-xl shadow-2xl z-50 animate-popup-in w-64 overflow-hidden flex flex-col max-h-72">
-                                <div className="p-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                                    <span className="text-xs font-bold text-gray-600">Reply Language</span>
-                                    <button onClick={() => setShowTranslate(false)} className="text-gray-400 hover:text-red-500">
-                                        <i className="fas fa-times"></i>
-                                    </button>
+                        {/* Selected Image Preview */}
+                        {selectedImage && (
+                            <div className="mb-2 flex items-center gap-2 animate-popup-in bg-white p-2 rounded-lg shadow-sm border">
+                                <img src={selectedImage} className="w-12 h-12 rounded object-cover border" />
+                                <div className="flex-1">
+                                    <p className="text-[10px] font-bold text-gray-500">Image attached</p>
+                                    <button onClick={() => setSelectedImage(null)} className="text-red-500 text-[10px] font-bold hover:underline">Remove</button>
                                 </div>
-                                
-                                {/* Search Bar */}
-                                <div className="p-2 border-b border-gray-100">
-                                    <div className="relative">
-                                        <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                            </div>
+                        )}
+                        
+                        {/* Compact Language Selector Box */}
+                        {showTranslate && (
+                            <div className="absolute bottom-[calc(100%+10px)] left-2 w-56 bg-white border border-gray-200 rounded-2xl shadow-2xl z-[110] flex flex-col max-h-[300px] animate-popup-in">
+                                <div className="p-3 border-b border-gray-100 flex items-center justify-between">
+                                    <span className="text-xs font-bold text-gray-600">Translate</span>
+                                    <button onClick={() => setShowTranslate(false)} className="text-gray-400 hover:text-red-500"><i className="fas fa-times text-[10px]"></i></button>
+                                </div>
+                                <div className="p-2">
+                                    <div className="relative mb-2">
+                                        <i className="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
                                         <input 
                                             type="text" 
                                             placeholder="Search language..." 
-                                            value={searchLang}
-                                            onChange={(e) => setSearchLang(e.target.value)}
-                                            className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-medical-400 transition-colors"
+                                            value={searchLang} 
+                                            onChange={(e) => setSearchLang(e.target.value)} 
+                                            className="w-full text-[11px] py-1.5 pl-7 pr-2 bg-gray-50 border-none rounded-lg focus:ring-1 focus:ring-medical-500"
                                         />
                                     </div>
-                                </div>
-
-                                {/* Language List */}
-                                <div className="overflow-y-auto custom-scrollbar flex-1 p-1">
-                                    {filteredLanguages.length > 0 ? (
-                                        filteredLanguages.map(lang => (
-                                            <button
-                                                key={lang.code}
-                                                onClick={() => handleLanguageSelect(lang.code)}
-                                                className={`w-full text-left px-3 py-2 hover:bg-medical-50 hover:text-medical-700 text-sm rounded-lg transition-colors flex items-center gap-2 group ${selectedLanguage === lang.code ? 'bg-medical-50 text-medical-700 font-bold' : ''}`}
+                                    <div className="flex flex-col gap-0.5 overflow-y-auto max-h-[180px] custom-scrollbar">
+                                        {filteredLanguages.map(lang => (
+                                            <button 
+                                                key={lang.code} 
+                                                onClick={() => { setSelectedLanguage(lang.code); setShowTranslate(false); }} 
+                                                className={`flex items-center gap-2 text-left text-[11px] p-2 rounded-lg transition-colors ${selectedLanguage === lang.code ? 'bg-medical-50 text-medical-700 font-bold' : 'hover:bg-gray-50 text-gray-600'}`}
                                             >
-                                                <span className={`w-1 h-1 rounded-full ${selectedLanguage === lang.code ? 'bg-medical-500' : 'bg-gray-300 group-hover:bg-medical-500'}`}></span>
-                                                {lang.name}
+                                                <span>{lang.flag}</span>
+                                                <span className="truncate">{lang.name}</span>
                                             </button>
-                                        ))
-                                    ) : (
-                                        <div className="text-center py-4 text-xs text-gray-400">
-                                            No language found
-                                        </div>
-                                    )}
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* Quick Suggestions */}
-                        {messages.length < 3 && !showTranslate && (
-                             <div className="flex gap-2 overflow-x-auto pb-3 custom-scrollbar">
-                                {suggestions.map((s, i) => (
-                                    <button 
-                                        key={i} 
-                                        onClick={(e) => handleSubmit(e, s)}
-                                        className="whitespace-nowrap px-3 py-1.5 bg-white border border-gray-300 rounded-full text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors shadow-sm"
-                                    >
-                                        {s}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                        <form onSubmit={(e) => handleSubmit(e)} className="flex items-center gap-1">
+                            {/* Hidden inputs */}
+                            <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleFileSelect} />
+                            <input type="file" ref={scanInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleCameraScan} />
 
-                        <form onSubmit={(e) => handleSubmit(e)} className="flex items-end gap-2">
-                            <input 
-                                type="file" 
-                                ref={fileInputRef}
-                                accept="image/*"
-                                className="hidden"
-                                onChange={handleFileSelect}
-                            />
+                            <div className="flex items-center">
+                                <button type="button" onClick={() => fileInputRef.current?.click()} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-medical-600 transition-colors" title="Upload Image"><i className="fas fa-plus"></i></button>
+                                <button type="button" onClick={() => scanInputRef.current?.click()} className={`w-9 h-9 flex items-center justify-center transition-all ${isScanning ? 'text-medical-600 animate-spin' : 'text-gray-500 hover:text-medical-600'}`} title="Scan Medicine"><i className="fas fa-camera"></i></button>
+                                <button type="button" onClick={() => setShowTranslate(!showTranslate)} className={`w-9 h-9 flex items-center justify-center transition-all ${selectedLanguage !== 'English' || showTranslate ? 'text-medical-600' : 'text-gray-500 hover:text-medical-600'}`} title="Translate"><i className="fas fa-language text-xl"></i></button>
+                                <button type="button" onClick={startLiveSession} className="w-9 h-9 flex items-center justify-center text-medical-600 hover:scale-110 transition-transform" title="Live Talk"><i className="fas fa-microphone text-lg"></i></button>
+                            </div>
                             
-                            {/* Upload Image Button */}
-                            <button 
-                                type="button"
-                                onClick={triggerFileInput}
-                                className={`mb-1 p-2 rounded-full transition-all text-gray-500 hover:bg-gray-200 ${selectedImage ? 'text-medical-600' : ''}`}
-                                title="Upload Image"
-                            >
-                                <i className="fas fa-plus text-lg"></i>
-                            </button>
-
-                            {/* Translate Button - Triggers Custom Popup */}
-                            <button 
-                                type="button"
-                                onClick={() => setShowTranslate(!showTranslate)}
-                                className={`mb-1 p-2 rounded-full transition-all ${showTranslate || selectedLanguage !== 'English' ? 'text-blue-600 bg-blue-100' : 'text-gray-500 hover:bg-gray-200'}`}
-                                title="Choose Reply Language"
-                            >
-                                <i className="fas fa-language text-lg"></i>
-                            </button>
-
-                            <div className="flex-1 relative bg-white rounded-2xl border border-white focus-within:border-white shadow-sm px-4 py-2">
-                                <textarea 
-                                    rows={1}
-                                    value={inputValue}
-                                    onChange={(e) => {
-                                        setInputValue(e.target.value);
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault();
-                                            handleSubmit(e as any);
-                                        }
-                                    }}
-                                    placeholder={selectedImage ? "Add caption..." : `Type in ${selectedLanguage}...`}
-                                    className="w-full bg-transparent border-none text-sm focus:outline-none focus:ring-0 text-gray-800 placeholder-gray-500 resize-none max-h-24 pt-1"
-                                />
-                            </div>
+                            <input 
+                                type="text" 
+                                value={inputValue} 
+                                onChange={(e) => setInputValue(e.target.value)} 
+                                placeholder={isLive ? "Talking..." : `Type in ${selectedLanguage}...`} 
+                                className="flex-1 bg-white border-none rounded-full px-4 py-2.5 text-sm focus:ring-2 focus:ring-medical-500 shadow-inner" 
+                                disabled={isLive} 
+                            />
                             
                             <button 
                                 type="submit" 
-                                disabled={isLoading || (!inputValue.trim() && !selectedImage)}
-                                className={`mb-1 w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm ${
-                                    (!inputValue.trim() && !selectedImage) 
-                                    ? 'bg-gray-200 text-gray-400 cursor-default' 
-                                    : 'bg-medical-600 text-white hover:bg-medical-700 active:scale-95'
-                                }`}
+                                disabled={(!inputValue.trim() && !selectedImage) || isLive || isLoading} 
+                                className="w-10 h-10 rounded-full bg-medical-600 text-white flex items-center justify-center shadow-lg hover:bg-medical-700 disabled:opacity-50 transition-all active:scale-90"
                             >
-                                <i className="fas fa-paper-plane text-sm"></i>
+                                {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
                             </button>
                         </form>
                     </div>

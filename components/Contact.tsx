@@ -29,12 +29,6 @@ const Contact: React.FC = () => {
                                     <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center mr-3 transition-all duration-300 border border-gray-200 group-hover:border-medical-500 group-hover:bg-medical-100 group-hover:shadow-[0_0_20px_rgba(34,197,94,0.6)] group-hover:scale-110">
                                         <i className="fas fa-phone-alt text-medical-600 text-lg"></i>
                                     </span>
-                                    <a href="tel:+919199749447" className="text-lg font-medium text-gray-700 hover:text-medical-600 transition">+91 91997 49447</a>
-                                </li>
-                                <li className="flex items-center group cursor-pointer">
-                                    <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center mr-3 transition-all duration-300 border border-gray-200 group-hover:border-medical-500 group-hover:bg-medical-100 group-hover:shadow-[0_0_20px_rgba(34,197,94,0.6)] group-hover:scale-110">
-                                        <i className="fas fa-phone-alt text-medical-600 text-lg"></i>
-                                    </span>
                                     <a href="tel:+919798881368" className="text-lg font-medium text-gray-700 hover:text-medical-600 transition">+91 97988 81368</a>
                                 </li>
                                 <li className="flex items-center group cursor-pointer">

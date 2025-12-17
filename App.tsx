@@ -144,7 +144,8 @@ const App: React.FC = () => {
       });
     }, observerOptions);
 
-    const revealElements = document.querySelectorAll('.reveal');
+    // FIX: Include .reveal-scale elements in the observer so they become visible
+    const revealElements = document.querySelectorAll('.reveal, .reveal-scale');
     revealElements.forEach(el => observer.observe(el));
 
     // Handle Smooth Scrolling for Anchor Links
