@@ -89,14 +89,7 @@ const WelcomeModal: React.FC = () => {
             className={`fixed inset-0 z-[100] flex items-center justify-center px-4 backdrop-blur-sm bg-black/60 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
         >
             <div className={`bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 relative transition-all duration-300 ${isVisible ? 'scale-100 animate-popup-in' : 'scale-95 opacity-0'}`}>
-                {/* Close button acts as 'Reject' or just dismiss */}
-                <button 
-                    onClick={handleClose}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none transition bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center"
-                    aria-label="Dismiss"
-                >
-                    <i className="fas fa-times"></i>
-                </button>
+                {/* Cross button removed to force selection */}
 
                 <div className="text-center pt-2">
                     <div className="w-16 h-16 bg-medical-100 rounded-full flex items-center justify-center mx-auto mb-4 text-medical-600 animate-bounce">

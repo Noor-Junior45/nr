@@ -36,6 +36,8 @@ export default {
         'typing': 'typing 1.4s infinite ease-in-out both',
         'blob': 'blob 7s infinite',
         'bounce-subtle': 'bounce-subtle 3s infinite',
+        'spring': 'spring 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        'spin-slow': 'spin 12s linear infinite', // Added slow spin
       },
       keyframes: {
         float: {
@@ -101,6 +103,12 @@ export default {
         'bounce-subtle': {
           '0%, 100%': { transform: 'translateY(-5%)' },
           '50%': { transform: 'translateY(5%)' },
+        },
+        spring: {
+            '0%': { transform: 'scale(1)' },
+            '40%': { transform: 'scale(1.4)' },
+            '70%': { transform: 'scale(0.9)' },
+            '100%': { transform: 'scale(1)' }
         }
       }
     }

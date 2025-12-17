@@ -227,6 +227,7 @@ const App: React.FC = () => {
               isWishlisted={wishlist.includes(viewedProduct.id)}
               onToggleWishlist={() => toggleWishlist(viewedProduct)}
               preventHistoryPush={isDeepLinkOpen}
+              onSwitchProduct={(p) => setViewedProduct(p)}
           />
       )}
       

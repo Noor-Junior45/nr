@@ -7,19 +7,76 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) => {
     const [activeLink, setActiveLink] = useState('#home');
+    const [isOpenStatus, setIsOpenStatus] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const navLinks = [
         { name: 'Home', href: '#home' },
         { name: 'About', href: '#about' },
         { name: 'Products', href: '#products' },
-        { name: 'Tools', href: '#tools', icon: 'fas fa-calculator' }, // Removed New Badge
+        { name: 'Tools', href: '#tools', icon: 'fas fa-calculator' }, 
         { name: 'Services', href: '#services' },
         { name: 'Tips', href: '#health-tips' },
         { name: 'FAQ', href: '#faq' },
         { name: 'Contact', href: '#contact' },
         { name: 'Directions', href: '#map-location', icon: 'fas fa-map-marker-alt' },
     ];
+
+    // Check Store Open/Closed Status (IST Based)
+    useEffect(() => {
+        const checkStatus = () => {
+            const now = new Date();
+            
+            // Format to parts in Asia/Kolkata timezone
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Kolkata',
+                hour12: false,
+                weekday: 'short',
+                hour: 'numeric',
+                minute: 'numeric'
+            });
+
+            const parts = formatter.formatToParts(now);
+            const getPart = (type: string) => parts.find(p => p.type === type)?.value;
+
+            const dayStr = getPart('weekday'); // e.g., "Fri", "Mon"
+            const hourStr = getPart('hour');
+            
+            // Handle case where hour might be "24" or undefined, though en-US hour12:false usually 0-23
+            const hour = parseInt(hourStr || '0', 10);
+
+            // Logic:
+            // Store Location: Hanwara, Jharkhand (IST)
+            // General Hours: 6:00 AM to 9:00 PM (06:00 - 21:00)
+            // Lunch Break (Fri): 12:00 PM to 2:00 PM (12:00 - 14:00)
+            // Lunch Break (Others): 12:00 PM to 1:00 PM (12:00 - 13:00)
+
+            let isOpen = false;
+
+            if (hour >= 6 && hour < 21) {
+                // It is within working hours (6 AM - 9 PM)
+                if (dayStr === 'Fri') {
+                    // Friday Lunch: Closed 12-2
+                    // Open if < 12 OR >= 14
+                    if (hour < 12 || hour >= 14) {
+                        isOpen = true;
+                    }
+                } else {
+                    // Other Days Lunch: Closed 12-1
+                    // Open if < 12 OR >= 13
+                    if (hour < 12 || hour >= 13) {
+                        isOpen = true;
+                    }
+                }
+            }
+
+            setIsOpenStatus(isOpen);
+        };
+
+        checkStatus();
+        const interval = setInterval(checkStatus, 60000); // Update every minute
+        return () => clearInterval(interval);
+    }, []);
 
     // Scroll Spy to update active link
     useEffect(() => {
@@ -59,7 +116,7 @@ const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) =>
             
             {/* 
               UPPER DECK: Brand & Actions 
-              Style: White (Reverted to earlier color)
+              Style: White
             */}
             <div className="bg-white/95 backdrop-blur-md text-gray-800 py-3 px-4 relative z-20 border-b border-gray-100">
                 <div className="container mx-auto flex justify-between items-center">
@@ -73,10 +130,20 @@ const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) =>
                             />
                         </div>
                         <div className="flex flex-col justify-center h-10">
-                            {/* Changed to font-bold and text-2xl md:text-3xl for larger size */}
                             <span className="font-bold text-2xl md:text-3xl leading-none tracking-tight text-medical-600 group-hover:text-medical-700 transition-colors">
                                 New Lucky Pharma
                             </span>
+                            
+                            {/* Live Status Indicator */}
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className={`relative flex h-2 w-2`}>
+                                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isOpenStatus ? 'bg-green-400' : 'bg-red-400'}`}></span>
+                                  <span className={`relative inline-flex rounded-full h-2 w-2 ${isOpenStatus ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                                </span>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider ${isOpenStatus ? 'text-green-600' : 'text-red-500'}`}>
+                                    {isOpenStatus ? 'Open Now' : 'Store Closed'}
+                                </span>
+                            </div>
                         </div>
                     </a>
 
@@ -134,13 +201,6 @@ const Navbar: React.FC<NavbarProps> = ({ wishlistCount = 0, onOpenWishlist }) =>
                                 <i className={`${link.icon} text-xs ${activeLink === link.href ? 'text-medical-600' : 'text-gray-400 group-hover:text-medical-500'}`}></i>
                             )}
                             <span className="relative z-10">{link.name}</span>
-                            
-                            {/* New Badge - REMOVED */}
-                            {(link as any).isNew && (
-                                <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full animate-bounce shadow-sm">
-                                    NEW
-                                </span>
-                            )}
                             
                             {/* Active Indicator (Bottom Border) - Changed to Green */}
                             {activeLink === link.href && (

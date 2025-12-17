@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { searchProducts } from '../services/geminiService';
-import { productList } from '../data/products';
 import { ProductCardImage } from './ProductCardImage';
 import ProductDetailModal from './ProductDetailModal';
 
@@ -11,8 +10,13 @@ interface ProductsProps {
 }
 
 const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
+    // State for Data
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
     const [searchQuery, setSearchQuery] = useState('');
-    const [displayedProducts, setDisplayedProducts] = useState<Product[]>(productList);
+    const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
     const [isAiResult, setIsAiResult] = useState(false);
@@ -26,8 +30,31 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
     // Track which product ID has just been copied/shared
     const [copiedId, setCopiedId] = useState<number | null>(null);
 
+    // Animation state for wishlist interactions
+    const [animatingIds, setAnimatingIds] = useState<Set<number>>(new Set());
+
     // Confirmation Dialog State
     const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+    // FETCH DATA
+    useEffect(() => {
+        setLoading(true);
+        fetch('/products.json')
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to load products');
+                return response.json();
+            })
+            .then(data => {
+                setProducts(data);
+                setDisplayedProducts(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Error fetching products:", err);
+                setError("Unable to load products. Please try again later.");
+                setLoading(false);
+            });
+    }, []);
 
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
@@ -40,8 +67,10 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
         return () => window.removeEventListener('keydown', handleEsc);
     }, [showClearConfirm]);
 
-    // Effect to handle Deep Linked Search Queries
+    // Effect to handle Deep Linked Search Queries (Runs only after products are loaded)
     useEffect(() => {
+        if (loading || products.length === 0) return;
+
         const params = new URLSearchParams(window.location.search);
         const deepSearchQuery = params.get('search_query');
 
@@ -53,11 +82,11 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                 document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
             }, 500);
         }
-    }, []);
+    }, [loading, products.length]);
 
     const performSearch = async (query: string) => {
         if (!query.trim()) {
-            setDisplayedProducts(productList);
+            setDisplayedProducts(products); // Use fetched products
             setHasSearched(false);
             setIsAiResult(false);
             setIsSearching(false);
@@ -69,7 +98,8 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
         setIsAiResult(false);
 
         const lowerQuery = query.toLowerCase();
-        const localResults = productList.filter(p => 
+        // Use fetched products for local search
+        const localResults = products.filter(p => 
             p.name.toLowerCase().includes(lowerQuery) || 
             p.description.toLowerCase().includes(lowerQuery) ||
             p.category?.toLowerCase().includes(lowerQuery)
@@ -111,7 +141,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
 
     const performClear = () => {
         setSearchQuery('');
-        setDisplayedProducts(productList);
+        setDisplayedProducts(products); // Reset to fetched products
         setHasSearched(false);
         setIsAiResult(false);
         setIsSearching(false);
@@ -144,6 +174,24 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
             detail: { productName: product.name, description: product.description } 
         });
         window.dispatchEvent(event);
+    };
+
+    const handleWishlistToggle = (e: React.MouseEvent, product: Product) => {
+        e.stopPropagation();
+        
+        // Trigger animation
+        setAnimatingIds(prev => new Set(prev).add(product.id));
+        
+        toggleWishlist(product);
+        
+        // Remove animation class after duration
+        setTimeout(() => {
+            setAnimatingIds(prev => {
+                const next = new Set(prev);
+                next.delete(product.id);
+                return next;
+            });
+        }, 400); // 400ms matches spring animation duration
     };
 
     const handleShare = async (product: Product, e: React.MouseEvent) => {
@@ -196,7 +244,6 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
         <section id="products" className="scroll-mt-32 min-h-[800px] transition-all duration-500 relative py-16 bg-gradient-to-br from-emerald-100 via-medical-100 to-medical-50" aria-label="Products Section">
             
             {/* Search Focus Backdrop - Visible ONLY when focused on MOBILE */}
-            {/* Removed background color to avoid dimming effect, kept z-index to handle click-out */}
             <div 
                 className={`fixed inset-0 z-[55] transition-opacity duration-300 md:hidden ${isFocused ? 'block' : 'hidden'}`}
                 onClick={() => setIsFocused(false)}
@@ -254,6 +301,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                     placeholder="Search medicines, products, or symptoms..." 
                                     className={`w-full bg-white border-2 text-gray-800 text-lg rounded-full py-4 pl-6 pr-24 focus:outline-none transition-all duration-300 relative z-10 placeholder-gray-500 ${isFocused ? 'border-medical-500 shadow-none ring-2 ring-medical-100' : 'border-transparent'}`}
                                     aria-label="Search medicines, products, or symptoms"
+                                    disabled={loading}
                                 />
 
                                 {/* Clear 'X' Button */}
@@ -285,7 +333,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                 <button 
                                     type="submit"
                                     className="absolute right-2 top-1/2 -translate-y-1/2 bg-medical-600 text-white w-11 h-11 rounded-full flex items-center justify-center hover:bg-medical-700 transition-all z-20 shadow-md group-hover:scale-105 active:scale-95"
-                                    disabled={isSearching}
+                                    disabled={isSearching || loading}
                                 >
                                     {isSearching ? (
                                         <i className="fas fa-spinner fa-spin"></i>
@@ -316,112 +364,122 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                             </div>
                         )}
                     </div>
-                </div>
 
-                <div 
-                    className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 transition-all duration-700 ${isSearching ? 'opacity-50 blur-sm' : 'opacity-100 blur-0'}`}
-                    role="region"
-                >
-                    {displayedProducts.length > 0 ? (
-                        displayedProducts.map((product, index) => (
-                            <div 
-                                key={product.id} 
-                                className={`glass-card rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden flex flex-col h-full group bg-white border border-medical-100/50 transform hover:-translate-y-2 hover:scale-[1.02] animate-fade-in-up ${isAiResult ? 'border-indigo-100 ring-2 ring-indigo-50' : ''}`}
-                                style={{ animationDelay: `${(index % 5) * 100}ms` }}
-                            >
-                                <div 
-                                    className="overflow-hidden h-56 p-6 relative cursor-pointer bg-gradient-to-br from-medical-50 to-white group-hover:from-medical-100 group-hover:to-medical-50 transition-colors duration-300 flex items-center justify-center border-b border-medical-50"
-                                    onClick={() => openQuickView(product)}
-                                >
-                                    <ProductCardImage src={product.image} alt={product.name} />
-                                    
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleWishlist(product);
-                                        }}
-                                        className={`absolute top-3 left-3 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm active:scale-75 ${
-                                            wishlist.includes(product.id) 
-                                            ? 'bg-red-50 text-red-500 shadow-md shadow-red-100 border border-red-200 scale-110' 
-                                            : 'bg-white/90 text-gray-300 hover:text-red-500 hover:bg-red-50 border border-medical-100 hover:scale-110'
-                                        }`}
+                    {/* Loading State */}
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-20 min-h-[400px]">
+                            <div className="w-16 h-16 border-4 border-medical-200 border-t-medical-600 rounded-full animate-spin mb-4"></div>
+                            <p className="text-gray-500 font-medium animate-pulse">Loading products...</p>
+                        </div>
+                    ) : error ? (
+                         <div className="flex flex-col items-center justify-center py-20 min-h-[400px]">
+                            <i className="fas fa-exclamation-circle text-4xl text-red-400 mb-4"></i>
+                            <p className="text-gray-600 font-medium">{error}</p>
+                            <button onClick={() => window.location.reload()} className="mt-4 text-medical-600 font-bold hover:underline">Retry</button>
+                        </div>
+                    ) : (
+                        <div 
+                            className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 transition-all duration-700 ${isSearching ? 'opacity-50 blur-sm' : 'opacity-100 blur-0'}`}
+                            role="region"
+                        >
+                            {displayedProducts.length > 0 ? (
+                                displayedProducts.map((product, index) => (
+                                    <div 
+                                        key={product.id} 
+                                        className={`glass-card rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden flex flex-col h-full group bg-white border border-medical-100/50 transform hover:-translate-y-2 hover:scale-[1.02] animate-fade-in-up ${isAiResult ? 'border-indigo-100 ring-2 ring-indigo-50' : ''}`}
+                                        style={{ animationDelay: `${(index % 5) * 100}ms` }}
                                     >
-                                        <i className={`${wishlist.includes(product.id) ? 'fas fa-heart text-red-500 animate-heartbeat-red' : 'far fa-heart'} text-lg`}></i>
-                                    </button>
-
-                                    <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
-                                        {isAiResult && (
-                                            <span className="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 animate-scale-up">
-                                                <i className="fas fa-robot"></i> AI Suggested
-                                            </span>
-                                        )}
-                                        {product.isPrescriptionRequired && (
-                                            <div className="bg-red-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md border border-red-700 flex items-center gap-1 cursor-help">
-                                                <i className="fas fa-file-prescription"></i> Requires Rx
-                                            </div>
-                                        )}
-                                    </div>
-                                    
-                                    <div className="absolute inset-0 bg-white/20 backdrop-blur-[1px] group-hover:backdrop-blur-[2px] transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                        <button className="bg-white/95 text-gray-800 px-5 py-2.5 rounded-full transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 shadow-xl hover:bg-medical-600 hover:text-white font-bold text-sm flex items-center justify-center hover:scale-110">
-                                            <i className="fas fa-eye mr-2"></i> Quick View
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="p-5 flex flex-col flex-grow relative bg-white">
-                                    <div className="mb-2">
-                                        {product.category && (
-                                            <p className="text-xs font-semibold text-medical-600 mb-1 uppercase tracking-wider">{product.category}</p>
-                                        )}
-                                        <h3 className="font-bold text-lg text-gray-800 group-hover:text-medical-700 transition-colors leading-tight">{product.name}</h3>
-                                    </div>
-                                    <p className="text-sm text-gray-500 mb-4 line-clamp-2 leading-relaxed flex-grow">{product.description}</p>
-                                    
-                                    <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
-                                        <button 
+                                        <div 
+                                            className="overflow-hidden h-56 p-6 relative cursor-pointer bg-gradient-to-br from-medical-50 to-white group-hover:from-medical-100 group-hover:to-medical-50 transition-colors duration-300 flex items-center justify-center border-b border-medical-50"
                                             onClick={() => openQuickView(product)}
-                                            className="text-medical-700 font-bold text-xs hover:underline flex items-center"
                                         >
-                                            View Details <i className="fas fa-arrow-right ml-1"></i>
-                                        </button>
-
-                                        <div className="flex items-center gap-2">
-                                            {/* Share Button */}
-                                            <button 
-                                                onClick={(e) => handleShare(product, e)}
-                                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-sm ${
-                                                    copiedId === product.id 
-                                                    ? 'bg-green-100 text-green-600 border border-green-200' 
-                                                    : 'bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 hover:border-blue-200'
-                                                }`}
-                                                title="Share product"
+                                            <ProductCardImage src={product.image} alt={product.name} />
+                                            
+                                            <button
+                                                onClick={(e) => handleWishlistToggle(e, product)}
+                                                className={`absolute top-3 left-3 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm active:scale-75 ${
+                                                    wishlist.includes(product.id) 
+                                                    ? 'bg-red-50 text-red-500 shadow-md shadow-red-100 border border-red-200 scale-110' 
+                                                    : 'bg-white/90 text-gray-300 hover:text-red-500 hover:bg-red-50 border border-medical-100 hover:scale-110'
+                                                } ${animatingIds.has(product.id) ? 'animate-spring' : ''}`}
                                             >
-                                                <i className={`fas ${copiedId === product.id ? 'fa-check' : 'fa-share-alt'} text-xs`}></i>
+                                                <i className={`${wishlist.includes(product.id) ? 'fas fa-heart text-red-500' : 'far fa-heart'} text-lg`}></i>
                                             </button>
 
-                                            {/* AI Button */}
-                                            <button 
-                                                onClick={(e) => askAI(product, e)}
-                                                className="w-8 h-8 rounded-full bg-medical-50 text-medical-600 flex items-center justify-center hover:bg-medical-100 transition-colors shadow-sm border border-medical-100 hover:border-medical-200"
-                                                title="Ask AI Pharmacist"
-                                            >
-                                                <i className="fas fa-robot text-xs"></i>
-                                            </button>
+                                            <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
+                                                {isAiResult && (
+                                                    <span className="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 animate-scale-up">
+                                                        <i className="fas fa-robot"></i> AI Suggested
+                                                    </span>
+                                                )}
+                                                {product.isPrescriptionRequired && (
+                                                    <div className="bg-red-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md border border-red-700 flex items-center gap-1 cursor-help">
+                                                        <i className="fas fa-file-prescription"></i> Requires Rx
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="absolute inset-0 bg-white/20 backdrop-blur-[1px] group-hover:backdrop-blur-[2px] transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                <button className="bg-white/95 text-gray-800 px-5 py-2.5 rounded-full transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 shadow-xl hover:bg-medical-600 hover:text-white font-bold text-sm flex items-center justify-center hover:scale-110">
+                                                    <i className="fas fa-eye mr-2"></i> Quick View
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="p-5 flex flex-col flex-grow relative bg-white">
+                                            <div className="mb-2">
+                                                {product.category && (
+                                                    <p className="text-xs font-semibold text-medical-600 mb-1 uppercase tracking-wider">{product.category}</p>
+                                                )}
+                                                <h3 className="font-bold text-lg text-gray-800 group-hover:text-medical-700 transition-colors leading-tight">{product.name}</h3>
+                                            </div>
+                                            <p className="text-sm text-gray-500 mb-4 line-clamp-2 leading-relaxed flex-grow">{product.description}</p>
+                                            
+                                            <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
+                                                <button 
+                                                    onClick={() => openQuickView(product)}
+                                                    className="text-medical-700 font-bold text-xs hover:underline flex items-center"
+                                                >
+                                                    View Details <i className="fas fa-arrow-right ml-1"></i>
+                                                </button>
+
+                                                <div className="flex items-center gap-2">
+                                                    {/* Share Button */}
+                                                    <button 
+                                                        onClick={(e) => handleShare(product, e)}
+                                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-sm ${
+                                                            copiedId === product.id 
+                                                            ? 'bg-green-100 text-green-600 border border-green-200' 
+                                                            : 'bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 hover:border-blue-200'
+                                                        }`}
+                                                        title="Share product"
+                                                    >
+                                                        <i className={`fas ${copiedId === product.id ? 'fa-check' : 'fa-share-alt'} text-xs`}></i>
+                                                    </button>
+
+                                                    {/* AI Button */}
+                                                    <button 
+                                                        onClick={(e) => askAI(product, e)}
+                                                        className="w-8 h-8 rounded-full bg-medical-50 text-medical-600 flex items-center justify-center hover:bg-medical-100 transition-colors shadow-sm border border-medical-100 hover:border-medical-200"
+                                                        title="Ask AI Pharmacist"
+                                                    >
+                                                        <i className="fas fa-robot text-xs"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
+                                ))
+                            ) : (
+                                <div className="col-span-full text-center py-12 animate-fade-in glass-panel rounded-2xl bg-white/50" role="status">
+                                    <div className="text-gray-400 mb-4">
+                                        <i className="fas fa-search text-4xl" aria-hidden="true"></i>
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-600">No products found</h3>
+                                    <p className="text-gray-500">Try searching for generic terms like "Pain killer" or "Cough syrup"</p>
                                 </div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="col-span-full text-center py-12 animate-fade-in glass-panel rounded-2xl bg-white/50" role="status">
-                            <div className="text-gray-400 mb-4">
-                                <i className="fas fa-search text-4xl" aria-hidden="true"></i>
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-600">No products found</h3>
-                            <p className="text-gray-500">Try searching for generic terms like "Pain killer" or "Cough syrup"</p>
+                            )}
                         </div>
                     )}
-                </div>
 
                 {/* No Delivery Notice Banner */}
                 <div className="mt-12 glass-panel border-l-4 border-l-orange-500 p-4 rounded-r-lg shadow-sm reveal flex items-start md:items-center animate-fade-in relative z-10 bg-white/60">
@@ -445,6 +503,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                     onClose={closeQuickView} 
                     isWishlisted={wishlist.includes(selectedProduct.id)}
                     onToggleWishlist={() => toggleWishlist(selectedProduct)}
+                    onSwitchProduct={(p) => setSelectedProduct(p)}
                 />
             )}
             

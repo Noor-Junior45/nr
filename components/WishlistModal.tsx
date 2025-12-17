@@ -74,7 +74,7 @@ const WishlistModal: React.FC<WishlistModalProps> = ({ isOpen, onClose, wishlist
                 {/* Header */}
                 <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
                     <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        <i className="fas fa-heart text-red-500"></i> My Wishlist
+                        <i className="fas fa-heart text-red-500 animate-heartbeat-red"></i> My Wishlist
                     </h2>
                     <button 
                         onClick={onClose}
@@ -107,7 +107,7 @@ const WishlistModal: React.FC<WishlistModalProps> = ({ isOpen, onClose, wishlist
                                     <div className="flex flex-col items-center gap-2">
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); onToggleWishlist(item); }}
-                                            className="w-10 h-10 rounded-full border border-red-100 text-red-500 hover:bg-red-100 flex items-center justify-center transition-all duration-300 z-10 hover:scale-110 active:scale-75 hover:shadow-md hover:rotate-12"
+                                            className="w-10 h-10 rounded-full border border-red-100 text-red-500 hover:bg-red-100 flex items-center justify-center transition-all duration-300 z-10 hover:scale-125 active:scale-90 hover:shadow-md"
                                             title="Remove"
                                         >
                                             <i className="fas fa-trash-alt"></i>
