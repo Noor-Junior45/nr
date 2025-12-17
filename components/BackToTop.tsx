@@ -73,10 +73,10 @@ const BackToTop: React.FC = () => {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             // Alignment: right-8 (32px) centers it relative to chatbot
-            // Position: bottom-28 (above chatbot)
+            // Position: bottom-36 (above shifted chatbot)
             // Design: 3D Ball effect using gradients and shadows
             // Faded effect: opacity-60 by default, hover:opacity-100
-            className={`fixed bottom-28 right-8 z-40 w-14 h-14 rounded-full 
+            className={`fixed bottom-36 right-8 z-40 w-14 h-14 rounded-full 
             bg-gradient-to-br from-white via-gray-50 to-gray-200
             shadow-[0_8px_20px_rgba(0,0,0,0.25),inset_0_-3px_8px_rgba(0,0,0,0.1),inset_0_3px_8px_rgba(255,255,255,0.8)] 
             border border-white/50

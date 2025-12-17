@@ -155,6 +155,7 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
     const [searchLang, setSearchLang] = useState('');
     const [selectedLanguage, setSelectedLanguage] = useState('English');
     const [isOnline] = useState(isAIConfigured());
+    const [showSuggestions, setShowSuggestions] = useState(true);
     
     // UI State
     const [messages, setMessages] = useState<ChatMessage[]>(() => {
@@ -213,6 +214,8 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
     const toggleChat = () => {
         setIsOpen(!isOpen);
         if (!isOpen) setHasUnread(false);
+        // Reset suggestions visibility to true every time the chat is opened
+        if (!isOpen) setShowSuggestions(true);
     };
 
     const stopAudio = () => {
@@ -432,12 +435,10 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
         return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
-    const isInitialScreen = messages.length <= 1 && !isLoading;
-
     return (
         <>
             {/* FAB */}
-            <button onClick={toggleChat} className="fixed bottom-6 right-6 z-[90] w-16 h-16 rounded-full bg-white border-2 border-medical-100 shadow-xl flex items-center justify-center transition-all hover:-translate-y-1">
+            <button onClick={toggleChat} className="fixed bottom-16 right-6 z-[90] w-16 h-16 rounded-full bg-white border-2 border-medical-100 shadow-xl flex items-center justify-center transition-all hover:-translate-y-1">
                 <i className="fas fa-user-md text-3xl text-medical-600"></i>
                 {hasUnread && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-white"></span>}
             </button>
@@ -523,12 +524,17 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
 
                     {/* Footer */}
                     <div className="p-3 bg-[#f0f2f5] border-t border-gray-200 relative">
-                        {/* Quick Suggestions Box */}
-                        {isInitialScreen && (
+                        {/* Quick Suggestions Box - NOW ALWAYS VISIBLE BY DEFAULT */}
+                        {showSuggestions && (
                             <div className="mb-4 flex flex-col gap-2 animate-fade-in px-1">
-                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                                    <i className="fas fa-lightbulb text-yellow-500"></i> Suggestions
-                                </p>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                        <i className="fas fa-lightbulb text-yellow-500"></i> Suggestions
+                                    </p>
+                                    <button onClick={() => setShowSuggestions(false)} className="text-gray-400 hover:text-red-500 text-[10px] px-2 py-0.5 rounded-full hover:bg-gray-200">
+                                        <i className="fas fa-times"></i>
+                                    </button>
+                                </div>
                                 <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar scrollbar-hide">
                                     {QUICK_SUGGESTIONS.map((suggestion, i) => (
                                         <button 
