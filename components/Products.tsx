@@ -263,11 +263,6 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
 
                 {/* 
                     Search Container Architecture:
-                    1. Outer Wrapper: Maintains vertical flow.
-                    2. Placeholder: Hidden by default. Shown ONLY on Mobile when Focused to prevent jump.
-                    3. Search Bar: 
-                       - Mobile & Focused: Fixed below navbar (top-28 approx 112px).
-                       - Desktop OR Not Focused: Relative/Static.
                 */}
                 <div className="w-full mb-8 relative z-20">
                     
@@ -288,7 +283,6 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                             <form onSubmit={handleSearch} className={`relative group w-full ${isFocused ? '' : 'shadow-lg rounded-full'}`}>
                                 <label htmlFor="product-search-input" className="sr-only">Search medicines, products, or symptoms</label>
                                 
-                                {/* Glow Effect - Removed blur-md when focused to prevent any bleeding issues */}
                                 <div className={`absolute inset-0 bg-gradient-to-r from-medical-400 to-teal-400 rounded-full blur-md opacity-30 group-hover:opacity-60 transition duration-500 ${isSearching ? 'animate-pulse' : ''} ${isFocused ? 'hidden' : ''}`}></div>
                                 
                                 <input 
@@ -365,7 +359,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                         )}
                     </div>
 
-                    {/* Loading State */}
+                    {/* Content Logic */}
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-20 min-h-[400px]">
                             <div className="w-16 h-16 border-4 border-medical-200 border-t-medical-600 rounded-full animate-spin mb-4"></div>

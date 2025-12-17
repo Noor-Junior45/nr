@@ -100,8 +100,8 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             
             {/* Modal Container */}
             {/* Mobile: h-[75dvh] (Bottom Sheet Style) */}
-            {/* Desktop: h-[70vh] (Centered Card), sm:mt-12 shifts it slightly down for better visual balance */}
-            <div className="relative glass-panel bg-white w-full h-[75dvh] sm:h-[70vh] sm:max-w-5xl sm:mt-12 rounded-t-[2.5rem] sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-slide-up sm:animate-popup-in transform transition-all">
+            {/* Desktop: h-[70vh] (Centered Card), sm:translate-y-12 pushes it down slightly for visual balance */}
+            <div className="relative glass-panel bg-white w-full h-[75dvh] sm:h-[70vh] sm:max-w-5xl rounded-t-[2.5rem] sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-slide-up sm:animate-popup-in transform transition-all sm:translate-y-12">
                 
                 {/* Fixed Header Layer for Buttons (Always on top) */}
                 <div className="absolute top-0 left-0 w-full z-50 p-4 sm:p-6 flex justify-between pointer-events-none">
