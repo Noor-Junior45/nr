@@ -358,122 +358,123 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                             </div>
                         )}
                     </div>
+                </div>
 
-                    {/* Content Logic */}
-                    {loading ? (
+                {/* Content Logic */}
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20 min-h-[400px]">
+                        <div className="w-16 h-16 border-4 border-medical-200 border-t-medical-600 rounded-full animate-spin mb-4"></div>
+                        <p className="text-gray-500 font-medium animate-pulse">Loading products...</p>
+                    </div>
+                ) : error ? (
                         <div className="flex flex-col items-center justify-center py-20 min-h-[400px]">
-                            <div className="w-16 h-16 border-4 border-medical-200 border-t-medical-600 rounded-full animate-spin mb-4"></div>
-                            <p className="text-gray-500 font-medium animate-pulse">Loading products...</p>
-                        </div>
-                    ) : error ? (
-                         <div className="flex flex-col items-center justify-center py-20 min-h-[400px]">
-                            <i className="fas fa-exclamation-circle text-4xl text-red-400 mb-4"></i>
-                            <p className="text-gray-600 font-medium">{error}</p>
-                            <button onClick={() => window.location.reload()} className="mt-4 text-medical-600 font-bold hover:underline">Retry</button>
-                        </div>
-                    ) : (
-                        <div 
-                            className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 transition-all duration-700 ${isSearching ? 'opacity-50 blur-sm' : 'opacity-100 blur-0'}`}
-                            role="region"
-                        >
-                            {displayedProducts.length > 0 ? (
-                                displayedProducts.map((product, index) => (
+                        <i className="fas fa-exclamation-circle text-4xl text-red-400 mb-4"></i>
+                        <p className="text-gray-600 font-medium">{error}</p>
+                        <button onClick={() => window.location.reload()} className="mt-4 text-medical-600 font-bold hover:underline">Retry</button>
+                    </div>
+                ) : (
+                    <div 
+                        className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 transition-all duration-700 ${isSearching ? 'opacity-50 blur-sm' : 'opacity-100 blur-0'}`}
+                        role="region"
+                    >
+                        {displayedProducts.length > 0 ? (
+                            displayedProducts.map((product, index) => (
+                                <div 
+                                    key={product.id} 
+                                    className={`glass-card rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden flex flex-col h-full group bg-white border border-medical-100/50 transform hover:-translate-y-2 hover:scale-[1.02] animate-fade-in-up ${isAiResult ? 'border-indigo-100 ring-2 ring-indigo-50' : ''}`}
+                                    style={{ animationDelay: `${(index % 5) * 100}ms` }}
+                                >
                                     <div 
-                                        key={product.id} 
-                                        className={`glass-card rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden flex flex-col h-full group bg-white border border-medical-100/50 transform hover:-translate-y-2 hover:scale-[1.02] animate-fade-in-up ${isAiResult ? 'border-indigo-100 ring-2 ring-indigo-50' : ''}`}
-                                        style={{ animationDelay: `${(index % 5) * 100}ms` }}
+                                        className="overflow-hidden h-56 p-6 relative cursor-pointer bg-gradient-to-br from-medical-50 to-white group-hover:from-medical-100 group-hover:to-medical-50 transition-colors duration-300 flex items-center justify-center border-b border-medical-50"
+                                        onClick={() => openQuickView(product)}
                                     >
-                                        <div 
-                                            className="overflow-hidden h-56 p-6 relative cursor-pointer bg-gradient-to-br from-medical-50 to-white group-hover:from-medical-100 group-hover:to-medical-50 transition-colors duration-300 flex items-center justify-center border-b border-medical-50"
-                                            onClick={() => openQuickView(product)}
+                                        <ProductCardImage src={product.image} alt={product.name} />
+                                        
+                                        <button
+                                            onClick={(e) => handleWishlistToggle(e, product)}
+                                            className={`absolute top-3 left-3 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm active:scale-75 ${
+                                                wishlist.includes(product.id) 
+                                                ? 'bg-red-50 text-red-500 shadow-md shadow-red-100 border border-red-200 scale-110' 
+                                                : 'bg-white/90 text-gray-300 hover:text-red-500 hover:bg-red-50 border border-medical-100 hover:scale-110'
+                                            } ${animatingIds.has(product.id) ? 'animate-spring' : ''}`}
                                         >
-                                            <ProductCardImage src={product.image} alt={product.name} />
-                                            
-                                            <button
-                                                onClick={(e) => handleWishlistToggle(e, product)}
-                                                className={`absolute top-3 left-3 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm active:scale-75 ${
-                                                    wishlist.includes(product.id) 
-                                                    ? 'bg-red-50 text-red-500 shadow-md shadow-red-100 border border-red-200 scale-110' 
-                                                    : 'bg-white/90 text-gray-300 hover:text-red-500 hover:bg-red-50 border border-medical-100 hover:scale-110'
-                                                } ${animatingIds.has(product.id) ? 'animate-spring' : ''}`}
+                                            <i className={`${wishlist.includes(product.id) ? 'fas fa-heart text-red-500' : 'far fa-heart'} text-lg`}></i>
+                                        </button>
+
+                                        <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
+                                            {isAiResult && (
+                                                <span className="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 animate-scale-up">
+                                                    <i className="fas fa-robot"></i> AI Suggested
+                                                </span>
+                                            )}
+                                            {product.isPrescriptionRequired && (
+                                                <div className="bg-red-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md border border-red-700 flex items-center gap-1 cursor-help">
+                                                    <i className="fas fa-file-prescription"></i> Requires Rx
+                                                </div>
+                                            )}
+                                        </div>
+                                        
+                                        <div className="absolute inset-0 bg-white/20 backdrop-blur-[1px] group-hover:backdrop-blur-[2px] transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                            <button className="bg-white/95 text-gray-800 px-5 py-2.5 rounded-full transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 shadow-xl hover:bg-medical-600 hover:text-white font-bold text-sm flex items-center justify-center hover:scale-110">
+                                                <i className="fas fa-eye mr-2"></i> Quick View
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="p-5 flex flex-col flex-grow relative bg-white">
+                                        <div className="mb-2">
+                                            {product.category && (
+                                                <p className="text-xs font-semibold text-medical-600 mb-1 uppercase tracking-wider">{product.category}</p>
+                                            )}
+                                            <h3 className="font-bold text-lg text-gray-800 group-hover:text-medical-700 transition-colors leading-tight">{product.name}</h3>
+                                        </div>
+                                        <p className="text-sm text-gray-500 mb-4 line-clamp-2 leading-relaxed flex-grow">{product.description}</p>
+                                        
+                                        <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
+                                            <button 
+                                                onClick={() => openQuickView(product)}
+                                                className="text-medical-700 font-bold text-xs hover:underline flex items-center"
                                             >
-                                                <i className={`${wishlist.includes(product.id) ? 'fas fa-heart text-red-500' : 'far fa-heart'} text-lg`}></i>
+                                                View Details <i className="fas fa-arrow-right ml-1"></i>
                                             </button>
 
-                                            <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
-                                                {isAiResult && (
-                                                    <span className="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 animate-scale-up">
-                                                        <i className="fas fa-robot"></i> AI Suggested
-                                                    </span>
-                                                )}
-                                                {product.isPrescriptionRequired && (
-                                                    <div className="bg-red-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md border border-red-700 flex items-center gap-1 cursor-help">
-                                                        <i className="fas fa-file-prescription"></i> Requires Rx
-                                                    </div>
-                                                )}
-                                            </div>
-                                            
-                                            <div className="absolute inset-0 bg-white/20 backdrop-blur-[1px] group-hover:backdrop-blur-[2px] transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                                <button className="bg-white/95 text-gray-800 px-5 py-2.5 rounded-full transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 shadow-xl hover:bg-medical-600 hover:text-white font-bold text-sm flex items-center justify-center hover:scale-110">
-                                                    <i className="fas fa-eye mr-2"></i> Quick View
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div className="p-5 flex flex-col flex-grow relative bg-white">
-                                            <div className="mb-2">
-                                                {product.category && (
-                                                    <p className="text-xs font-semibold text-medical-600 mb-1 uppercase tracking-wider">{product.category}</p>
-                                                )}
-                                                <h3 className="font-bold text-lg text-gray-800 group-hover:text-medical-700 transition-colors leading-tight">{product.name}</h3>
-                                            </div>
-                                            <p className="text-sm text-gray-500 mb-4 line-clamp-2 leading-relaxed flex-grow">{product.description}</p>
-                                            
-                                            <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                {/* Share Button */}
                                                 <button 
-                                                    onClick={() => openQuickView(product)}
-                                                    className="text-medical-700 font-bold text-xs hover:underline flex items-center"
+                                                    onClick={(e) => handleShare(product, e)}
+                                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-sm ${
+                                                        copiedId === product.id 
+                                                        ? 'bg-green-100 text-green-600 border border-green-200' 
+                                                        : 'bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 hover:border-blue-200'
+                                                    }`}
+                                                    title="Share product"
                                                 >
-                                                    View Details <i className="fas fa-arrow-right ml-1"></i>
+                                                    <i className={`fas ${copiedId === product.id ? 'fa-check' : 'fa-share-alt'} text-xs`}></i>
                                                 </button>
 
-                                                <div className="flex items-center gap-2">
-                                                    {/* Share Button */}
-                                                    <button 
-                                                        onClick={(e) => handleShare(product, e)}
-                                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-sm ${
-                                                            copiedId === product.id 
-                                                            ? 'bg-green-100 text-green-600 border border-green-200' 
-                                                            : 'bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 hover:border-blue-200'
-                                                        }`}
-                                                        title="Share product"
-                                                    >
-                                                        <i className={`fas ${copiedId === product.id ? 'fa-check' : 'fa-share-alt'} text-xs`}></i>
-                                                    </button>
-
-                                                    {/* AI Button */}
-                                                    <button 
-                                                        onClick={(e) => askAI(product, e)}
-                                                        className="w-8 h-8 rounded-full bg-medical-50 text-medical-600 flex items-center justify-center hover:bg-medical-100 transition-colors shadow-sm border border-medical-100 hover:border-medical-200"
-                                                        title="Ask AI Pharmacist"
-                                                    >
-                                                        <i className="fas fa-robot text-xs"></i>
-                                                    </button>
-                                                </div>
+                                                {/* AI Button */}
+                                                <button 
+                                                    onClick={(e) => askAI(product, e)}
+                                                    className="w-8 h-8 rounded-full bg-medical-50 text-medical-600 flex items-center justify-center hover:bg-medical-100 transition-colors shadow-sm border border-medical-100 hover:border-medical-200"
+                                                    title="Ask AI Pharmacist"
+                                                >
+                                                    <i className="fas fa-robot text-xs"></i>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
-                                ))
-                            ) : (
-                                <div className="col-span-full text-center py-12 animate-fade-in glass-panel rounded-2xl bg-white/50" role="status">
-                                    <div className="text-gray-400 mb-4">
-                                        <i className="fas fa-search text-4xl" aria-hidden="true"></i>
-                                    </div>
-                                    <h3 className="text-xl font-bold text-gray-600">No products found</h3>
-                                    <p className="text-gray-500">Try searching for generic terms like "Pain killer" or "Cough syrup"</p>
                                 </div>
-                            )}
-                        </div>
-                    )}
+                            ))
+                        ) : (
+                            <div className="col-span-full text-center py-12 animate-fade-in glass-panel rounded-2xl bg-white/50" role="status">
+                                <div className="text-gray-400 mb-4">
+                                    <i className="fas fa-search text-4xl" aria-hidden="true"></i>
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-600">No products found</h3>
+                                <p className="text-gray-500">Try searching for generic terms like "Pain killer" or "Cough syrup"</p>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* No Delivery Notice Banner */}
                 <div className="mt-12 glass-panel border-l-4 border-l-orange-500 p-4 rounded-r-lg shadow-sm reveal flex items-start md:items-center animate-fade-in relative z-10 bg-white/60">
