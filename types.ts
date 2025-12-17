@@ -6,6 +6,7 @@ export interface ChatMessage {
     isUser: boolean;
     timestamp: number;
     products?: Product[];
+    groundingSources?: { title: string; url: string }[];
 }
 
 export interface Product {

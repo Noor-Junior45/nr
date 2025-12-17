@@ -88,36 +88,49 @@ const WelcomeModal: React.FC = () => {
         <div 
             className={`fixed inset-0 z-[100] flex items-center justify-center px-4 backdrop-blur-sm bg-black/60 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
         >
-            <div className={`bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 relative transition-all duration-300 ${isVisible ? 'scale-100 animate-popup-in' : 'scale-95 opacity-0'}`}>
-                {/* Cross button removed to force selection */}
+            <div className={`bg-white rounded-2xl shadow-2xl max-w-[320px] w-full p-5 relative transition-all duration-300 ${isVisible ? 'scale-100 animate-popup-in' : 'scale-95 opacity-0'}`}>
+                {/* Compact Content */}
 
-                <div className="text-center pt-2">
-                    <div className="w-16 h-16 bg-medical-100 rounded-full flex items-center justify-center mx-auto mb-4 text-medical-600 animate-bounce">
-                        <i className="fas fa-cookie-bite text-3xl"></i>
+                <div className="text-center">
+                    <div className="w-12 h-12 bg-medical-100 rounded-full flex items-center justify-center mx-auto mb-3 text-medical-600 animate-bounce">
+                        <i className="fas fa-cookie-bite text-xl"></i>
                     </div>
                     
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Welcome to<br />New Lucky Pharma!</h3>
-                    <p className="text-gray-600 mb-6 text-sm leading-relaxed">
-                        We use cookies to deliver personalized advertisements.
-                    </p>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">Welcome to<br />New Lucky Pharma!</h3>
+                    
+                    <div className="text-left mb-4 border border-gray-100 bg-gray-50 p-3 rounded-lg">
+                        <p className="text-[11px] text-gray-600 mb-2 leading-relaxed">
+                            We use cookies to improve your experience. By accepting, you agree to:
+                        </p>
+                        <ul className="text-[10px] text-gray-500 space-y-1">
+                            <li className="flex items-center gap-1.5">
+                                <i className="fas fa-check-circle text-medical-500 text-[10px]"></i>
+                                <span>Personalized offers & suggestions</span>
+                            </li>
+                            <li className="flex items-center gap-1.5">
+                                <i className="fas fa-check-circle text-medical-500 text-[10px]"></i>
+                                <span>Better site performance</span>
+                            </li>
+                        </ul>
+                    </div>
 
-                    <div className="space-y-3">
-                        <button 
-                            onClick={handleAccept}
-                            className="btn-shine block w-full py-3 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-xl shadow-lg transition transform hover:-translate-y-1 relative overflow-hidden"
-                        >
-                            Accept Ads & Continue
-                        </button>
+                    <div className="flex gap-3">
                         <button 
                             onClick={handleDecline}
-                            className="block w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl transition"
+                            className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl text-sm transition"
                         >
-                            Reject Ads
+                            Reject
+                        </button>
+                        <button 
+                            onClick={handleAccept}
+                            className="btn-shine flex-1 py-2.5 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-xl shadow-md text-sm transition transform hover:-translate-y-0.5 relative overflow-hidden"
+                        >
+                            Accept
                         </button>
                     </div>
 
-                    <p className="mt-4 text-[10px] text-gray-400">
-                        Your data is safe with us. We respect your privacy.
+                    <p className="mt-3 text-[9px] text-gray-400">
+                        Secure & Private. No data sold.
                     </p>
                 </div>
             </div>

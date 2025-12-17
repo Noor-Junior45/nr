@@ -288,7 +288,7 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                                 onClick={askAI}
                                 className="flex-1 py-3.5 px-6 rounded-xl font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100 transition-all duration-300 flex items-center justify-center gap-2 group text-sm md:text-base"
                             >
-                                <i className="fas fa-robot text-lg group-hover:rotate-12 transition-transform"></i>
+                                <i className="fas fa-user-md text-lg group-hover:rotate-12 transition-transform"></i>
                                 <span>Ask AI</span>
                             </button>
 

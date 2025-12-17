@@ -21,6 +21,10 @@ const HealthTools: React.FC = () => {
     const [bmi, setBmi] = useState<number | null>(null);
     const [bmiCategory, setBmiCategory] = useState<string>('');
 
+    // AI Insight State
+    const [activeFocus, setActiveFocus] = useState<string | null>(null);
+    const [smartTip, setSmartTip] = useState<string>('');
+
     // Water State
     const [waterWeight, setWaterWeight] = useState<string>('');
     const [waterNeed, setWaterNeed] = useState<number | null>(null);
@@ -65,6 +69,37 @@ const HealthTools: React.FC = () => {
         const interval = setInterval(checkReminders, 60000);
         return () => clearInterval(interval);
     }, []);
+
+    // Smart Tip Logic
+    useEffect(() => {
+        if (!activeFocus) {
+            setSmartTip('');
+            return;
+        }
+
+        let tip = "";
+        const w = parseFloat(weight);
+        const h = parseFloat(height);
+
+        if (activeFocus === 'weight') {
+            if (w > 0) {
+                if (weightUnit === 'kg' && w > 90) tip = "💡 Consistent cardio exercises like walking can help manage weight effectively.";
+                else if (weightUnit === 'kg' && w < 50) tip = "💡 Increasing protein intake is great for healthy muscle gain.";
+                else tip = "💡 Tracking your weight weekly is a good habit for health maintenance.";
+            } else {
+                 tip = "✨ Enter your weight to get personalized health insights.";
+            }
+        } else if (activeFocus === 'height') {
+            if (h > 0) {
+                 tip = "💡 Height is a key factor in calculating your Body Mass Index (BMI).";
+            } else {
+                 tip = "✨ Accurate height measurement ensures a precise BMI score.";
+            }
+        }
+        
+        setSmartTip(tip);
+    }, [activeFocus, weight, height, weightUnit]);
+
 
     // Breathing Logic Effect
     useEffect(() => {
@@ -329,7 +364,20 @@ const HealthTools: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
                     
                     {/* BMI Calculator Card */}
-                    <div className="p-8 rounded-[2.5rem] relative overflow-hidden group hover:shadow-2xl transition-all duration-500 border border-blue-100 bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 shadow-xl shadow-blue-100/50 reveal ring-1 ring-blue-50">
+                    <div className="p-8 rounded-[2.5rem] relative overflow-visible group hover:shadow-2xl transition-all duration-500 border border-blue-100 bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 shadow-xl shadow-blue-100/50 reveal ring-1 ring-blue-50">
+                        
+                        {/* AI Insight Card - Appears on Input Focus */}
+                        {activeFocus && smartTip && (
+                            <div className="absolute -top-10 right-8 z-30 animate-popup-in">
+                                <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-bold px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 max-w-[250px] relative">
+                                    <i className="fas fa-magic animate-pulse"></i>
+                                    <span>{smartTip}</span>
+                                    {/* Arrow */}
+                                    <div className="absolute -bottom-2 right-10 w-4 h-4 bg-purple-500 transform rotate-45"></div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex items-center gap-5 mb-8">
                             <div className="w-16 h-16 rounded-3xl bg-blue-50 shadow-inner text-blue-600 flex items-center justify-center text-3xl border border-blue-100 group-hover:rotate-12 transition-transform duration-500 ring-2 ring-white">
                                 <i className="fas fa-weight-scale"></i>
@@ -342,7 +390,7 @@ const HealthTools: React.FC = () => {
 
                         <form onSubmit={calculateBMI} className="space-y-4">
                              {/* ... (Existing BMI Form Logic) ... */}
-                            <div className="space-y-2">
+                            <div className="space-y-2 relative">
                                 <div className="flex justify-between items-center px-1">
                                     <label className="text-xs font-bold text-blue-400 uppercase tracking-wider">Weight</label>
                                     <div className="flex bg-blue-100/50 rounded-lg p-0.5 gap-0.5">
@@ -350,7 +398,15 @@ const HealthTools: React.FC = () => {
                                         <button type="button" onClick={() => setWeightUnit('lbs')} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${weightUnit === 'lbs' ? 'bg-white text-blue-600 shadow-sm' : 'text-blue-400 hover:text-blue-500'}`}>LBS</button>
                                     </div>
                                 </div>
-                                <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} className="w-full bg-white border border-blue-100 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-200 font-bold text-gray-800" placeholder={weightUnit} />
+                                <input 
+                                    type="number" 
+                                    value={weight} 
+                                    onFocus={() => setActiveFocus('weight')}
+                                    onBlur={() => setActiveFocus(null)}
+                                    onChange={(e) => setWeight(e.target.value)} 
+                                    className="w-full bg-white border border-blue-100 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-200 font-bold text-gray-800" 
+                                    placeholder={weightUnit} 
+                                />
                             </div>
 
                             <div className="space-y-2">
@@ -362,11 +418,35 @@ const HealthTools: React.FC = () => {
                                     </div>
                                 </div>
                                 {heightUnit === 'cm' ? (
-                                    <input type="number" value={height} onChange={(e) => setHeight(e.target.value)} className="w-full bg-white border border-blue-100 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-200 font-bold text-gray-800" placeholder="cm" />
+                                    <input 
+                                        type="number" 
+                                        value={height} 
+                                        onFocus={() => setActiveFocus('height')}
+                                        onBlur={() => setActiveFocus(null)}
+                                        onChange={(e) => setHeight(e.target.value)} 
+                                        className="w-full bg-white border border-blue-100 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-200 font-bold text-gray-800" 
+                                        placeholder="cm" 
+                                    />
                                 ) : (
                                     <div className="flex gap-2">
-                                        <input type="number" value={height} onChange={(e) => setHeight(e.target.value)} className="w-full bg-white border border-blue-100 rounded-xl px-3 py-3 text-center focus:outline-none focus:ring-2 focus:ring-blue-200 font-bold text-gray-800" placeholder="Ft" />
-                                        <input type="number" value={heightInches} onChange={(e) => setHeightInches(e.target.value)} className="w-full bg-white border border-blue-100 rounded-xl px-3 py-3 text-center focus:outline-none focus:ring-2 focus:ring-blue-200 font-bold text-gray-800" placeholder="In" />
+                                        <input 
+                                            type="number" 
+                                            value={height} 
+                                            onFocus={() => setActiveFocus('height')}
+                                            onBlur={() => setActiveFocus(null)}
+                                            onChange={(e) => setHeight(e.target.value)} 
+                                            className="w-full bg-white border border-blue-100 rounded-xl px-3 py-3 text-center focus:outline-none focus:ring-2 focus:ring-blue-200 font-bold text-gray-800" 
+                                            placeholder="Ft" 
+                                        />
+                                        <input 
+                                            type="number" 
+                                            value={heightInches} 
+                                            onFocus={() => setActiveFocus('height')}
+                                            onBlur={() => setActiveFocus(null)}
+                                            onChange={(e) => setHeightInches(e.target.value)} 
+                                            className="w-full bg-white border border-blue-100 rounded-xl px-3 py-3 text-center focus:outline-none focus:ring-2 focus:ring-blue-200 font-bold text-gray-800" 
+                                            placeholder="In" 
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -376,7 +456,7 @@ const HealthTools: React.FC = () => {
                             </button>
                         </form>
 
-                        {/* Result Display */}
+                        {/* Result Display with Ask AI Button */}
                         {bmi !== null && (
                             <div className="mt-6 pt-6 border-t border-blue-100 animate-slide-up">
                                 <div className="flex justify-between items-end mb-4">
@@ -394,8 +474,9 @@ const HealthTools: React.FC = () => {
                                     <div className="absolute top-0 bottom-0 w-1.5 bg-white border border-gray-500 rounded-full z-10 transition-all duration-1000" style={{ left: `${getBmiPosition()}%` }}></div>
                                 </div>
 
-                                <button onClick={askAIAboutHealth} className="w-full bg-medical-50 text-medical-700 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-2 border border-medical-100 hover:bg-medical-100 transition">
-                                    <i className="fas fa-robot"></i> Ask AI Advice
+                                <button onClick={askAIAboutHealth} className="w-full bg-medical-600 text-white font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 shadow-md hover:bg-medical-700 hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                                    <i className="fas fa-robot text-lg"></i> 
+                                    <span>Get Personalized AI Health Tips</span>
                                 </button>
                             </div>
                         )}

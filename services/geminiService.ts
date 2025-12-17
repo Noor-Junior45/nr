@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type, FunctionDeclaration, Tool } from "@google/genai";
+import { GoogleGenAI, Type, FunctionDeclaration, Tool, Modality } from "@google/genai";
 import { Product } from "../types";
 import { productList } from "../data/products";
 
@@ -16,20 +16,12 @@ const getAIClient = () => {
 
 const SYSTEM_INSTRUCTION = `You are a warm, caring, and friendly AI Pharmacist assistant for 'New Lucky Pharma', located in Hanwara, Jharkhand. Your goal is to help users with their health queries in a supportive and reassuring manner.
 
-CORE LANGUAGE RULES (STRICT):
-1. Match the User's Language:
-   - Always Reply in English.
-   - If the user writes in English, you MUST reply in English.
-   - If the user writes in Hinglish (Hindi in English script) or Hindi, you MUST reply in Hinglish (a friendly mix of Hindi and English).
-   - Do not force Hinglish if the user asks in proper English.
-   - Do not use Hinglish if user not using Hinglish.
-
 GUIDELINES:
 1. GREETING:
    - If user ask questions then give answer remove greeeting.
    - If the user starts with a simple greeting (e.g., "Hi", "Hello", "How are you?"), reply briefly with a friendly, single-sentence greeting and ask how you can help (e.g., "Hello! How can I assist you with your health questions today?").
    - For all other queries (i.e., medical questions, product questions), reply directly and immediately to the user's query. Do not add any extra conversational text.
-   - Always start with a friendly greeting.
+   - Always start with a friendly greeting if it is the very first message.
 2. TONE:
    - Be empathetic, polite, and respectful. Use emojis (💊, 🌿, 😊, 🙏) to make the conversation warm.
    - Use bold text (**) for key medicine names, headings, and important warnings.
@@ -48,9 +40,10 @@ GUIDELINES:
 5. PRODUCT SEARCH:
    - If the user asks to "find", "search", "show", "buy" or asks about the "price" or "availability" of a specific medicine, USE THE 'search_medicines' TOOL.
 6. MANDATORY DISCLAIMER: End *every* medical suggestion with: "Please consult a doctor for serious advice. Stay safe! 💚"
-7. If User ask about location and Time then give this result: 
-     - LOCATION: New Lucky Pharma, Main Road, Hanwara, Godda, Jharkhand (814154).
-     - TIME: Open 7 days a week, MON-SUN: 6:00 am to 12:00 pm & 1:00 pm to 9:00 pm, except Friday: 6:00 am to 12:00 pm & 2:00 pm to 9:00 pm.
+7. LOCATION & MAPS:
+   - Use the Google Maps tool to provide accurate location information when users ask about the pharmacy's location, nearby landmarks, or directions.
+   - Location: New Lucky Pharma, Main Road, Hanwara, Godda, Jharkhand (814154).
+   - Time: Open 7 days a week, MON-SUN: 6:00 am to 12:00 pm & 1:00 pm to 9:00 pm, except Friday: 6:00 am to 12:00 pm & 2:00 pm to 9:00 pm.
 
 Note: You are an AI assistant, not a doctor. Prioritize user safety and well-being.`;
 
@@ -78,12 +71,18 @@ const cleanText = (text: string): string => {
     return text.trim();
 };
 
-export const getGeminiResponse = async (userMessage: string, imageBase64?: string): Promise<{ text: string, products?: Product[] }> => {
+export const getGeminiResponse = async (userMessage: string, imageBase64?: string, targetLanguage: string = 'English'): Promise<{ text: string, products?: Product[], groundingSources?: { title: string; url: string }[] }> => {
     try {
         const ai = getAIClient();
         if (!ai) return { text: "I am currently offline. Please check back later." };
 
-        let contents: any = userMessage;
+        let contents: any;
+        
+        // Construct the final prompt with language instruction if needed
+        let finalMessage = userMessage;
+        if (targetLanguage && targetLanguage !== 'English') {
+            finalMessage = `${userMessage}\n\n[System Instruction: You MUST reply to this message in ${targetLanguage} language.]`;
+        }
 
         // Handle Image Input
         if (imageBase64) {
@@ -94,10 +93,12 @@ export const getGeminiResponse = async (userMessage: string, imageBase64?: strin
                  contents = {
                      parts: [
                          { inlineData: { mimeType, data } },
-                         { text: userMessage || "Please analyze this image." }
+                         { text: finalMessage || "Please analyze this image." }
                      ]
                  };
              }
+        } else {
+            contents = finalMessage;
         }
 
         // 1. First attempt with tools enabled
@@ -106,7 +107,8 @@ export const getGeminiResponse = async (userMessage: string, imageBase64?: strin
             contents: contents,
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
-                tools: [searchTool]
+                // Add Google Maps tool here
+                tools: [searchTool, { googleMaps: {} }]
             }
         });
 
@@ -121,9 +123,14 @@ export const getGeminiResponse = async (userMessage: string, imageBase64?: strin
                 // Perform Hybrid Search (Local First, then AI)
                 const products = await performHybridSearch(query);
                 
-                const resultText = products.length > 0 
+                // Translate the tool response text too if needed
+                let resultText = products.length > 0 
                     ? `I found ${products.length} products matching "**${query}**" for you. Tap 'View' to see details!`
                     : `I couldn't find "**${query}**" in our local inventory, but I can suggest general remedies if you like.`;
+
+                if (targetLanguage && targetLanguage !== 'English') {
+                    resultText = await translateText(resultText, targetLanguage);
+                }
 
                 return {
                     text: resultText,
@@ -132,9 +139,42 @@ export const getGeminiResponse = async (userMessage: string, imageBase64?: strin
             }
         }
 
-        // 3. Standard Text Response
-        const text = response.text;
-        return { text: cleanText(text) || "I didn't quite catch that. Could you rephrase?" };
+        // 3. Standard Text Response with Grounding Extraction
+        // Manual extraction to avoid "non-text parts functionCall" warning from SDK getter
+        let text = "";
+        if (response.candidates && response.candidates.length > 0 && response.candidates[0].content && response.candidates[0].content.parts) {
+            for (const part of response.candidates[0].content.parts) {
+                if (part.text) {
+                    text += part.text;
+                }
+            }
+        }
+
+        const groundingSources: { title: string; url: string }[] = [];
+
+        // Extract Grounding Metadata (Maps & Web)
+        if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+            response.candidates[0].groundingMetadata.groundingChunks.forEach((chunk: any) => {
+                if (chunk.web?.uri && chunk.web?.title) {
+                    groundingSources.push({ title: chunk.web.title, url: chunk.web.uri });
+                }
+                if (chunk.maps?.sourceConfig?.googleMapsDisplayConfig?.placeId) {
+                     // Sometimes maps chunk structure varies, but usually:
+                     // chunk.maps.uri is present directly in the documented structure.
+                }
+                // Check direct maps URI property as per documentation
+                if (chunk.maps?.uri && chunk.maps?.title) {
+                    groundingSources.push({ title: chunk.maps.title, url: chunk.maps.uri });
+                } else if (chunk.maps?.uri) {
+                     groundingSources.push({ title: "View on Google Maps", url: chunk.maps.uri });
+                }
+            });
+        }
+
+        return { 
+            text: cleanText(text) || "I didn't quite catch that. Could you rephrase?",
+            groundingSources: groundingSources.length > 0 ? groundingSources : undefined
+        };
 
     } catch (error) {
         console.error("Gemini API Error:", error);
@@ -161,20 +201,49 @@ const performHybridSearch = async (query: string): Promise<Product[]> => {
     return await searchProducts(query);
 };
 
-export const translateText = async (text: string): Promise<string> => {
+export const translateText = async (text: string, targetLanguage: string = 'English'): Promise<string> => {
     try {
         const ai = getAIClient();
         if (!ai) return text;
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `Translate the following medical advice into clear, easy-to-understand Hindi. Keep numbered lists. Use bold markers (**) for important words. Text: \n\n${text}`,
+            contents: `Translate the following text into ${targetLanguage}. Keep any markdown formatting like bolding (**). Text: \n\n${text}`,
         });
 
         return cleanText(response.text) || text;
     } catch (error) {
         console.error("Translation Error:", error);
         return text;
+    }
+};
+
+export const generateSpeech = async (text: string): Promise<string | null> => {
+    try {
+        const ai = getAIClient();
+        if (!ai) return null;
+
+        // Clean text for speech (remove markdown asterisks)
+        const cleanSpeechText = text.replace(/\*\*/g, "").replace(/\*/g, "");
+
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash-preview-tts",
+            contents: [{ parts: [{ text: cleanSpeechText }] }],
+            config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: {
+                    voiceConfig: {
+                        prebuiltVoiceConfig: { voiceName: 'Kore' },
+                    },
+                },
+            },
+        });
+
+        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        return base64Audio || null;
+    } catch (error) {
+        console.error("TTS Error:", error);
+        return null;
     }
 };
 

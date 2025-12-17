@@ -390,6 +390,7 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                     >
                                         <ProductCardImage src={product.image} alt={product.name} />
                                         
+                                        {/* Heart Button - Left Corner */}
                                         <button
                                             onClick={(e) => handleWishlistToggle(e, product)}
                                             className={`absolute top-3 left-3 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm active:scale-75 ${
@@ -401,7 +402,21 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                             <i className={`${wishlist.includes(product.id) ? 'fas fa-heart text-red-500' : 'far fa-heart'} text-lg`}></i>
                                         </button>
 
-                                        <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
+                                        {/* Share Button - Right Corner (Opposite to Heart) */}
+                                        <button
+                                            onClick={(e) => handleShare(product, e)}
+                                            className={`absolute top-3 right-3 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm active:scale-75 ${
+                                                copiedId === product.id
+                                                ? 'bg-green-100 text-green-600 border border-green-200'
+                                                : 'bg-white/90 text-gray-400 hover:text-blue-600 hover:bg-blue-50 border border-medical-100 hover:scale-110'
+                                            }`}
+                                            title="Share Product"
+                                        >
+                                            <i className={`fas ${copiedId === product.id ? 'fa-check' : 'fa-share-alt'} text-lg`}></i>
+                                        </button>
+
+                                        {/* Badges - Moved down to avoid overlap with Share Button */}
+                                        <div className="absolute top-16 right-3 flex flex-col gap-1 items-end pointer-events-none">
                                             {isAiResult && (
                                                 <span className="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 animate-scale-up">
                                                     <i className="fas fa-robot"></i> AI Suggested
@@ -438,26 +453,13 @@ const Products: React.FC<ProductsProps> = ({ wishlist, toggleWishlist }) => {
                                             </button>
 
                                             <div className="flex items-center gap-2">
-                                                {/* Share Button */}
-                                                <button 
-                                                    onClick={(e) => handleShare(product, e)}
-                                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-sm ${
-                                                        copiedId === product.id 
-                                                        ? 'bg-green-100 text-green-600 border border-green-200' 
-                                                        : 'bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 hover:border-blue-200'
-                                                    }`}
-                                                    title="Share product"
-                                                >
-                                                    <i className={`fas ${copiedId === product.id ? 'fa-check' : 'fa-share-alt'} text-xs`}></i>
-                                                </button>
-
-                                                {/* AI Button */}
+                                                {/* AI Button - Share button moved to image area */}
                                                 <button 
                                                     onClick={(e) => askAI(product, e)}
                                                     className="w-8 h-8 rounded-full bg-medical-50 text-medical-600 flex items-center justify-center hover:bg-medical-100 transition-colors shadow-sm border border-medical-100 hover:border-medical-200"
                                                     title="Ask AI Pharmacist"
                                                 >
-                                                    <i className="fas fa-robot text-xs"></i>
+                                                    <i className="fas fa-user-md text-xs"></i>
                                                 </button>
                                             </div>
                                         </div>
