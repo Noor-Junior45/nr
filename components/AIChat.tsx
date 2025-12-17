@@ -70,7 +70,7 @@ const LANGUAGES = [
     { code: 'Hinglish', name: 'Hinglish (Hindi + English)', flag: '🇮🇳' },
     { code: 'Hindi', name: 'हिन्दी (Hindi)', flag: '🇮🇳' },
     { code: 'Bengali', name: 'বাংলা (Bengali)', flag: '🇮🇳' },
-    { code: 'Urdu', name: 'اردو (Urdu)', flag: '🇵🇰' },
+    { code: 'Urdu', name: 'اردو (Urdu)', flag: '🇮🇳' },
     { code: 'Arabic', name: 'العربية (Arabic)', flag: '🇸🇦' },
     { code: 'Spanish', name: 'Español (Spanish)', flag: '🇪🇸' },
     { code: 'French', name: 'Français (French)', flag: '🇫🇷' },
@@ -118,11 +118,11 @@ const LANGUAGES = [
     { code: 'Latvian', name: 'Latviešu (Latvian)', flag: '🇱🇻' },
     { code: 'Lithuanian', name: 'Lietuvių (Lithuanian)', flag: '🇱🇹' },
     { code: 'Malay', name: 'Bahasa Melayu (Malay)', flag: '🇲🇾' },
-    { code: 'Mongolian', name: 'Мონгол (Mongolian)', flag: '🇲🇳' },
+    { code: 'Mongolian', name: 'Монгол (Mongolian)', flag: '🇲🇳' },
     { code: 'Nepali', name: 'नेपाली (Nepali)', flag: '🇳🇵' },
     { code: 'Norwegian', name: 'Norsk (Norwegian)', flag: '🇳🇴' },
     { code: 'Pashto', name: 'ਪښتو (Pashto)', flag: '🇦🇫' },
-    { code: 'Persian', name: 'فارسی (Persian)', flag: '🇮🇷' },
+    { code: 'Persian', name: 'فارसी (Persian)', flag: '🇮🇷' },
     { code: 'Polish', name: 'Polski (Polish)', flag: '🇵🇱' },
     { code: 'Romanian', name: 'Română (Romanian)', flag: '🇷🇴' },
     { code: 'Serbian', name: 'Српски (Serbian)', flag: '🇷🇸' },
@@ -137,7 +137,6 @@ const LANGUAGES = [
     { code: 'Vietnamese', name: 'Tiếng Việt (Vietnamese)', flag: '🇻🇳' },
     { code: 'Welsh', name: 'Cymraeg (Welsh)', flag: '🏴󠁧󠁢󠁷󠁬󠁿' },
 ].sort((a, b) => {
-    // Keep Hinglish at the top after English
     if (a.code === 'English') return -1;
     if (b.code === 'English') return 1;
     if (a.code === 'Hinglish') return -1;
@@ -156,9 +155,9 @@ interface AIChatProps {
 
 const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [isConfirmingClear, setIsConfirmingClear] = useState(false);
-    const [hasUnread, setHasUnread] = useState(true);
-    const [showBubble, setShowBubble] = useState(false);
+    const isOpenRef = useRef(false);
+    const [hasUnread, setHasUnread] = useState(false);
+    const [showGreeting, setShowGreeting] = useState(false);
     const [showTranslate, setShowTranslate] = useState(false);
     const [searchLang, setSearchLang] = useState('');
     const [selectedLanguage, setSelectedLanguage] = useState('English');
@@ -203,6 +202,23 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    // Initial Greeting Popup logic
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (!isOpen) setShowGreeting(true);
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    // Update ref for async checks
+    useEffect(() => {
+        isOpenRef.current = isOpen;
+        if (isOpen) {
+            setShowGreeting(false);
+            setHasUnread(false);
+        }
+    }, [isOpen]);
+
     // Handle 'ask-ai' custom event
     useEffect(() => {
         const handleAskAI = async (e: any) => {
@@ -228,14 +244,18 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                 
                 try {
                     const aiResponse = await getGeminiResponse(query, undefined, selectedLanguage);
-                    setMessages(prev => [...prev, { 
-                        id: (Date.now() + 1).toString(), 
-                        text: aiResponse.text, 
-                        isUser: false, 
-                        timestamp: Date.now(), 
-                        products: aiResponse.products, 
-                        groundingSources: aiResponse.groundingSources 
-                    }]);
+                    setMessages(prev => {
+                        // If user closed chat while AI was generating, show red dot
+                        if (!isOpenRef.current) setHasUnread(true);
+                        return [...prev, { 
+                            id: (Date.now() + 1).toString(), 
+                            text: aiResponse.text, 
+                            isUser: false, 
+                            timestamp: Date.now(), 
+                            products: aiResponse.products, 
+                            groundingSources: aiResponse.groundingSources 
+                        }];
+                    });
                 } catch (error) {
                     console.error("AI Error:", error);
                 } finally {
@@ -256,19 +276,8 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
         };
     }, []);
 
-    // GREETING LOGIC
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (!isOpen && messages.length <= 1) setShowBubble(true);
-        }, 4000);
-        return () => clearTimeout(timer);
-    }, [isOpen, messages.length]);
-
     const toggleChat = () => {
         setIsOpen(!isOpen);
-        if (!isOpen) setHasUnread(false);
-        // Reset suggestions visibility to true every time the chat is opened
-        if (!isOpen) setShowSuggestions(true);
     };
 
     const stopAudio = () => {
@@ -365,11 +374,14 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                         }
                         if (message.serverContent?.turnComplete) {
                             if (liveInTranscription || liveOutTranscription) {
-                                setMessages(prev => [
-                                    ...prev,
-                                    { id: Date.now().toString(), text: liveInTranscription, isUser: true, timestamp: Date.now() },
-                                    { id: (Date.now()+1).toString(), text: liveOutTranscription, isUser: false, timestamp: Date.now() }
-                                ]);
+                                setMessages(prev => {
+                                    if (!isOpenRef.current) setHasUnread(true);
+                                    return [
+                                        ...prev,
+                                        { id: Date.now().toString(), text: liveInTranscription, isUser: true, timestamp: Date.now() },
+                                        { id: (Date.now()+1).toString(), text: liveOutTranscription, isUser: false, timestamp: Date.now() }
+                                    ];
+                                });
                             }
                             liveInTranscription = "";
                             liveOutTranscription = "";
@@ -459,7 +471,11 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
         setSelectedImage(null);
         setIsLoading(true);
         const aiResponse = await getGeminiResponse(userText, userImage || undefined, selectedLanguage);
-        setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), text: aiResponse.text, isUser: false, timestamp: Date.now(), products: aiResponse.products, groundingSources: aiResponse.groundingSources }]);
+        setMessages(prev => {
+            // If user closed chat while AI was generating, show red dot
+            if (!isOpenRef.current) setHasUnread(true);
+            return [...prev, { id: (Date.now() + 1).toString(), text: aiResponse.text, isUser: false, timestamp: Date.now(), products: aiResponse.products, groundingSources: aiResponse.groundingSources }];
+        });
         setIsLoading(false);
     };
 
@@ -482,7 +498,6 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
         const now = new Date();
         const diff = now.getTime() - date.getTime();
         const dayDiff = Math.floor(diff / (1000 * 60 * 60 * 24));
-
         if (dayDiff === 0 && date.getDate() === now.getDate()) return 'Today';
         if (dayDiff === 1 || (dayDiff === 0 && date.getDate() !== now.getDate())) return 'Yesterday';
         return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -490,37 +505,53 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
 
     return (
         <>
+            {/* Greeting Popup */}
+            {showGreeting && !isOpen && (
+                <div className="fixed bottom-32 right-6 z-[95] animate-popup-in">
+                    <div className="bg-white border border-medical-200 p-4 rounded-2xl shadow-2xl relative max-w-[220px]">
+                        <div className="flex justify-between items-start mb-1">
+                            <p className="text-xs font-bold text-gray-800 leading-relaxed pr-6">
+                                Hi! 👋 I'm your AI Pharmacist. How can I help you today? 💊
+                            </p>
+                            <button onClick={() => setShowGreeting(false)} className="w-5 h-5 bg-gray-50 text-gray-400 hover:text-red-500 rounded-full flex items-center justify-center text-[10px] transition-colors"><i className="fas fa-times"></i></button>
+                        </div>
+                        {/* Tooltip Arrow */}
+                        <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white border-r border-b border-medical-200 rotate-45"></div>
+                    </div>
+                </div>
+            )}
+
             {/* FAB */}
-            <button onClick={toggleChat} className="fixed bottom-16 right-6 z-[90] w-16 h-16 rounded-full bg-white border-2 border-medical-100 shadow-xl flex items-center justify-center transition-all hover:-translate-y-1">
+            <button onClick={toggleChat} className="fixed bottom-16 right-6 z-[90] w-16 h-16 rounded-full bg-white border-2 border-medical-100 shadow-xl flex items-center justify-center transition-all hover:-translate-y-1 active:scale-90">
                 <i className="fas fa-user-md text-3xl text-medical-600"></i>
-                {hasUnread && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-white"></span>}
+                {hasUnread && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>}
             </button>
 
             {/* Modal Overlay */}
-            <div className={`fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 transition-all ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={(e) => e.target === e.currentTarget && toggleChat()}>
-                <div className={`bg-white w-full sm:max-w-[450px] h-[90vh] sm:h-[650px] sm:rounded-[2rem] rounded-t-[2rem] flex flex-col transition-all overflow-hidden relative ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+            <div className={`fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 transition-all duration-300 ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={(e) => e.target === e.currentTarget && toggleChat()}>
+                <div className={`bg-white w-full sm:max-w-[450px] h-[90vh] sm:h-[650px] sm:rounded-[2rem] rounded-t-[2rem] flex flex-col transition-all duration-500 overflow-hidden relative ${isOpen ? 'translate-y-0 scale-100' : 'translate-y-full scale-95'}`}>
                     
                     {/* Header */}
-                    <div className="bg-medical-600 h-20 px-6 flex items-center justify-between shadow-md text-white">
+                    <div className="bg-medical-600 h-20 px-6 flex items-center justify-between shadow-md text-white flex-shrink-0">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-medical-600"><i className="fas fa-user-md text-xl"></i></div>
+                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-medical-600 flex-shrink-0 shadow-sm"><i className="fas fa-user-md text-xl"></i></div>
                             <div>
                                 <h3 className="font-bold">AI Pharmacist</h3>
                                 <div className="flex items-center gap-1.5 opacity-90"><span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></span><span className="text-[10px] uppercase font-bold tracking-wider">{isOnline ? 'Online' : 'Offline'}</span></div>
                             </div>
                         </div>
-                        <button onClick={toggleChat} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i className="fas fa-times text-sm"></i></button>
+                        <button onClick={toggleChat} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"><i className="fas fa-times text-sm"></i></button>
                     </div>
 
                     {/* Chat Area */}
-                    <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 bg-[#ECE5DD] relative" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundBlendMode: 'soft-light' }}>
+                    <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 bg-[#ECE5DD] relative custom-scrollbar" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundBlendMode: 'soft-light' }}>
                         {isLive && (
                             <div className="absolute inset-0 bg-medical-900/90 backdrop-blur-md z-[60] flex flex-col items-center justify-center text-white p-8 text-center animate-fade-in">
                                 <i className="fas fa-microphone text-4xl text-medical-200 mb-6 animate-pulse"></i>
                                 <h4 className="text-2xl font-bold mb-2">Live Session</h4>
                                 <p className="text-medical-200 mb-8 font-medium">{liveStatusText}</p>
                                 <div className="bg-white/10 rounded-2xl p-6 w-full max-w-sm mb-8 min-h-[120px] italic text-lg">{currentTranscription || "Listening..."}</div>
-                                <button onClick={stopLiveSession} className="px-10 py-4 bg-red-500 rounded-full font-bold shadow-xl flex items-center gap-3"><i className="fas fa-stop"></i> End</button>
+                                <button onClick={stopLiveSession} className="px-10 py-4 bg-red-500 rounded-full font-bold shadow-xl flex items-center gap-3 active:scale-95 transition-all"><i className="fas fa-stop"></i> End</button>
                             </div>
                         )}
                         {messages.map((msg, idx) => {
@@ -534,17 +565,17 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                             </span>
                                         </div>
                                     )}
-                                    <div className={`flex w-full items-start gap-2 ${msg.isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                                        {/* Logo / Avatar */}
+                                    <div className={`flex w-full items-start gap-3 ${msg.isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                                        {/* Logo / Avatar - Flex shrink 0 prevents squashing */}
                                         <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm border shadow-sm ${msg.isUser ? 'bg-gray-100 border-gray-200 text-black' : 'bg-medical-100 border-medical-200 text-medical-600'}`}>
                                             <i className={`fas ${msg.isUser ? 'fa-user' : 'fa-user-md'}`}></i>
                                         </div>
 
-                                        {/* Standardized Bubble Width to 75% ensures text reply remains equal size and doesn't hit logos */}
+                                        {/* Bubble Container - Max width 75% ensures consistent layout and no overlap with logos */}
                                         <div className={`flex flex-col max-w-[75%] ${msg.isUser ? 'items-end' : 'items-start'}`}>
-                                            <div className={`relative px-3 pt-2 pb-1.5 text-sm shadow-sm w-fit ${msg.isUser ? 'bg-[#d9fdd3] rounded-lg rounded-tr-none' : 'bg-white rounded-lg rounded-tl-none'}`}>
-                                                {msg.image && <img src={msg.image} className="mb-2 rounded max-w-full border border-gray-100" />}
-                                                <div className="inline leading-[1.4] whitespace-pre-wrap">
+                                            <div className={`relative px-3 pt-2 pb-1.5 text-sm shadow-sm w-fit inline-block leading-[1.4] whitespace-pre-wrap ${msg.isUser ? 'bg-[#d9fdd3] rounded-lg rounded-tr-none' : 'bg-white rounded-lg rounded-tl-none'}`}>
+                                                {msg.image && <img src={msg.image} className="mb-2 rounded max-w-full border border-gray-100 shadow-sm" />}
+                                                <div className="inline">
                                                     {formatMessageText(msg.text)}
                                                     {/* WhatsApp style inline timestamp spacer */}
                                                     <span className="inline-flex items-center justify-end ml-3 align-bottom text-[9px] opacity-40 leading-none h-[11px] min-w-[45px] select-none pointer-events-none">
@@ -553,41 +584,35 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                                 </div>
                                             </div>
 
-                                            {/* AI Suggested Products rendering */}
-                                            {!msg.isUser && msg.products && msg.products.length > 0 && (
+                                            {/* Results rendering */}
+                                            {!msg.isUser && (msg.products?.length || msg.groundingSources?.length) && (
                                                 <div className="mt-2 flex flex-col gap-2 w-full animate-fade-in">
-                                                    {msg.products.map((p) => (
-                                                        <div key={p.id} className="bg-white rounded-xl shadow-sm border border-medical-100 overflow-hidden flex items-center p-2 gap-3 hover:border-medical-300 transition-colors cursor-pointer group" onClick={() => onViewProduct?.(p)}>
-                                                            <div className="w-12 h-12 flex-shrink-0">
-                                                                <ProductCardImage src={p.image} alt={p.name} className="rounded-lg" />
-                                                            </div>
+                                                    {msg.products?.map((p) => (
+                                                        <div key={p.id} className="bg-white rounded-xl shadow-sm border border-medical-100 overflow-hidden flex items-center p-2 gap-3 hover:border-medical-300 transition-all cursor-pointer group" onClick={() => onViewProduct?.(p)}>
+                                                            <div className="w-12 h-12 flex-shrink-0"><ProductCardImage src={p.image} alt={p.name} className="rounded-lg shadow-inner" /></div>
                                                             <div className="flex-1 min-w-0">
-                                                                <h4 className="text-xs font-bold text-gray-800 truncate group-hover:text-medical-600">{p.name}</h4>
-                                                                <p className="text-[10px] text-gray-500 truncate">{p.category || 'General Health'}</p>
+                                                                <h4 className="text-xs font-bold text-gray-800 truncate group-hover:text-medical-600 transition-colors">{p.name}</h4>
+                                                                <p className="text-[10px] text-gray-500 truncate font-medium">{p.category || 'General Health'}</p>
                                                             </div>
-                                                            <button className="text-[10px] font-bold text-medical-600 px-3 py-1 bg-medical-50 rounded-full hover:bg-medical-100 transition-colors">View</button>
+                                                            <button className="text-[10px] font-bold text-medical-600 px-3 py-1 bg-medical-50 rounded-full hover:bg-medical-100 transition-colors flex-shrink-0">View</button>
                                                         </div>
                                                     ))}
-                                                </div>
-                                            )}
-
-                                            {/* Grounding Sources rendering */}
-                                            {!msg.isUser && msg.groundingSources && msg.groundingSources.length > 0 && (
-                                                <div className="mt-2 flex flex-wrap gap-2 animate-fade-in">
-                                                    {msg.groundingSources.map((source, sIdx) => (
-                                                        <a key={sIdx} href={source.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-full border border-blue-100 hover:bg-blue-100 transition-colors">
-                                                            <i className="fas fa-external-link-alt"></i> {source.title}
-                                                        </a>
-                                                    ))}
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {msg.groundingSources?.map((source, sIdx) => (
+                                                            <a key={sIdx} href={source.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-full border border-blue-100 hover:bg-blue-100 transition-all shadow-sm">
+                                                                <i className="fas fa-external-link-alt"></i> {source.title}
+                                                            </a>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             )}
 
                                             {!msg.isUser && (
-                                                <div className="flex items-center gap-3 mt-1 px-1">
-                                                    <button onClick={() => playAudio(msg.id, msg.text)} className={`text-[10px] flex items-center gap-1.5 transition-colors ${playingMessageId === msg.id ? 'text-medical-600 font-bold' : 'text-gray-500 hover:text-medical-600'}`}>
-                                                        <i className={`fas ${playingMessageId === msg.id ? 'fa-stop' : 'fa-volume-up'}`}></i> {playingMessageId === msg.id ? 'Stop' : 'Speak'}
+                                                <div className="flex items-center gap-3 mt-1.5 px-1">
+                                                    <button onClick={() => playAudio(msg.id, msg.text)} className={`text-[10px] flex items-center gap-1.5 transition-all ${playingMessageId === msg.id ? 'text-medical-600 font-bold scale-105' : 'text-gray-500 hover:text-medical-600'}`}>
+                                                        <i className={`fas ${playingMessageId === msg.id ? (isAudioLoading ? 'fa-spinner fa-spin' : 'fa-stop') : 'fa-volume-up'}`}></i> {playingMessageId === msg.id ? (isAudioLoading ? 'Loading...' : 'Stop') : 'Speak'}
                                                     </button>
-                                                    <button onClick={() => copyToClipboard(msg.id, msg.text)} className={`text-[10px] flex items-center gap-1.5 transition-colors ${copiedId === msg.id ? 'text-medical-600 font-bold' : 'text-gray-500 hover:text-medical-600'}`}>
+                                                    <button onClick={() => copyToClipboard(msg.id, msg.text)} className={`text-[10px] flex items-center gap-1.5 transition-all ${copiedId === msg.id ? 'text-medical-600 font-bold scale-105' : 'text-gray-500 hover:text-medical-600'}`}>
                                                         <i className={`fas ${copiedId === msg.id ? 'fa-check text-green-500' : 'fa-copy'}`}></i> {copiedId === msg.id ? 'Copied!' : 'Copy'}
                                                     </button>
                                                 </div>
@@ -597,47 +622,40 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                 </React.Fragment>
                             );
                         })}
-                        {isLoading && <div className="flex items-center gap-2 ml-12">
-                            <div className="w-8 h-8 rounded-full bg-medical-50 border border-medical-100 flex items-center justify-center text-[10px] text-medical-600">
+                        {isLoading && <div className="flex items-center gap-3 ml-12 animate-fade-in">
+                            <div className="w-8 h-8 rounded-full bg-medical-50 border border-medical-100 flex items-center justify-center text-[10px] text-medical-600 shadow-sm">
                                 <i className="fas fa-spinner fa-spin"></i>
                             </div>
-                            <div className="bg-white/80 px-3 py-1 rounded-full text-[10px] text-gray-400 shadow-sm border border-gray-100">AI is thinking...</div>
+                            <div className="bg-white/80 backdrop-blur px-3 py-1.5 rounded-full text-[10px] text-gray-500 shadow-sm border border-gray-100 font-medium">AI is thinking...</div>
                         </div>}
                         <div ref={messagesEndRef} />
                     </div>
 
                     {/* Footer */}
-                    <div className="p-3 bg-[#f0f2f5] border-t border-gray-200 relative">
-                        {/* Quick Suggestions Box */}
+                    <div className="p-3 bg-[#f0f2f5] border-t border-gray-200 relative flex-shrink-0">
                         {showSuggestions && (
-                            <div className="mb-4 flex flex-col gap-2 animate-fade-in px-1">
+                            <div className="mb-4 flex flex-col gap-2 animate-popup-in px-1">
                                 <div className="flex items-center justify-between">
                                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                         <i className="fas fa-lightbulb text-yellow-500"></i> Suggestions
                                     </p>
-                                    <button onClick={() => setShowSuggestions(false)} className="text-gray-400 hover:text-red-500 text-[10px] px-2 py-0.5 rounded-full hover:bg-gray-200">
+                                    <button onClick={() => setShowSuggestions(false)} className="text-gray-400 hover:text-red-500 text-[10px] px-2 py-0.5 rounded-full hover:bg-gray-200 transition-colors">
                                         <i className="fas fa-times"></i>
                                     </button>
                                 </div>
-                                <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar scrollbar-hide">
+                                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                                     {QUICK_SUGGESTIONS.map((suggestion, i) => (
-                                        <button 
-                                            key={i} 
-                                            onClick={() => handleSubmit(null, suggestion.text.replace(/🤒|💊|📍|🤢|⏰|✨/g, '').trim())}
-                                            className="whitespace-nowrap bg-white border border-medical-200 px-3 py-2 rounded-full text-xs font-semibold text-medical-700 hover:bg-medical-50 hover:border-medical-300 transition-all flex items-center gap-2 shadow-sm active:scale-95"
-                                        >
-                                            <i className={`fas ${suggestion.icon} text-medical-500`}></i>
-                                            {suggestion.text}
+                                        <button key={i} onClick={() => handleSubmit(null, suggestion.text.replace(/🤒|💊|📍|🤢|⏰|✨/g, '').trim())} className="whitespace-nowrap bg-white border border-medical-200 px-3 py-2 rounded-full text-xs font-semibold text-medical-700 hover:bg-medical-50 hover:border-medical-300 transition-all flex items-center gap-2 shadow-sm active:scale-95">
+                                            <i className={`fas ${suggestion.icon} text-medical-500`}></i> {suggestion.text}
                                         </button>
                                     ))}
                                 </div>
                             </div>
                         )}
 
-                        {/* Selected Image Preview */}
                         {selectedImage && (
-                            <div className="mb-2 flex items-center gap-2 animate-popup-in bg-white p-2 rounded-lg shadow-sm border">
-                                <img src={selectedImage} className="w-12 h-12 rounded object-cover border" />
+                            <div className="mb-2 flex items-center gap-3 animate-popup-in bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                                <img src={selectedImage} className="w-12 h-12 rounded-lg object-cover border border-gray-50 shadow-inner" />
                                 <div className="flex-1">
                                     <p className="text-[10px] font-bold text-gray-500">Image attached</p>
                                     <button onClick={() => setSelectedImage(null)} className="text-red-500 text-[10px] font-bold hover:underline">Remove</button>
@@ -645,33 +663,23 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                             </div>
                         )}
                         
-                        {/* Compact Language Selector Box */}
                         {showTranslate && (
-                            <div className="absolute bottom-[calc(100%+10px)] left-2 w-56 bg-white border border-gray-200 rounded-2xl shadow-2xl z-[110] flex flex-col max-h-[300px] animate-popup-in">
-                                <div className="p-3 border-b border-gray-100 flex items-center justify-between">
-                                    <span className="text-xs font-bold text-gray-600">Translate</span>
-                                    <button onClick={() => setShowTranslate(false)} className="text-gray-400 hover:text-red-500"><i className="fas fa-times text-[10px]"></i></button>
+                            <div className="absolute bottom-[calc(100%+10px)] left-2 w-56 bg-white border border-gray-200 rounded-2xl shadow-2xl z-[110] flex flex-col max-h-[300px] animate-popup-in overflow-hidden">
+                                <div className="p-3 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                                    <span className="text-xs font-bold text-gray-600">Translate Chat</span>
+                                    <button onClick={() => setShowTranslate(false)} className="text-gray-400 hover:text-red-500 transition-colors"><i className="fas fa-times text-[10px]"></i></button>
                                 </div>
                                 <div className="p-2">
                                     <div className="relative mb-2">
                                         <i className="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
-                                        <input 
-                                            type="text" 
-                                            placeholder="Search language..." 
-                                            value={searchLang} 
-                                            onChange={(e) => setSearchLang(e.target.value)} 
-                                            className="w-full text-[11px] py-1.5 pl-7 pr-2 bg-gray-50 border-none rounded-lg focus:ring-1 focus:ring-medical-500"
-                                        />
+                                        <input type="text" placeholder="Search language..." value={searchLang} onChange={(e) => setSearchLang(e.target.value)} className="w-full text-[11px] py-2 pl-8 pr-2 bg-gray-50 border-none rounded-lg focus:ring-1 focus:ring-medical-500 transition-all" />
                                     </div>
                                     <div className="flex flex-col gap-0.5 overflow-y-auto max-h-[180px] custom-scrollbar">
                                         {filteredLanguages.map(lang => (
-                                            <button 
-                                                key={lang.code} 
-                                                onClick={() => { setSelectedLanguage(lang.code); setShowTranslate(false); }} 
-                                                className={`flex items-center gap-2 text-left text-[11px] p-2 rounded-lg transition-colors ${selectedLanguage === lang.code ? 'bg-medical-50 text-medical-700 font-bold' : 'hover:bg-gray-50 text-gray-600'}`}
-                                            >
-                                                <span>{lang.flag}</span>
-                                                <span className="truncate">{lang.name}</span>
+                                            <button key={lang.code} onClick={() => { setSelectedLanguage(lang.code); setShowTranslate(false); }} className={`flex items-center gap-3 text-left text-[11px] p-2.5 rounded-lg transition-colors ${selectedLanguage === lang.code ? 'bg-medical-50 text-medical-700 font-bold shadow-sm' : 'hover:bg-gray-50 text-gray-600'}`}>
+                                                <span className="text-sm">{lang.flag}</span>
+                                                <span className="truncate flex-1">{lang.name}</span>
+                                                {selectedLanguage === lang.code && <i className="fas fa-check text-[8px] text-medical-500"></i>}
                                             </button>
                                         ))}
                                     </div>
@@ -679,32 +687,20 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                             </div>
                         )}
 
-                        <form onSubmit={(e) => handleSubmit(e)} className="flex items-center gap-1">
-                            {/* Hidden inputs */}
+                        <form onSubmit={(e) => handleSubmit(e)} className="flex items-center gap-1.5">
                             <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleFileSelect} />
                             <input type="file" ref={scanInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleCameraScan} />
 
-                            <div className="flex items-center">
-                                <button type="button" onClick={() => fileInputRef.current?.click()} className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-medical-600 transition-colors" title="Upload Image"><i className="fas fa-plus"></i></button>
-                                <button type="button" onClick={() => scanInputRef.current?.click()} className={`w-9 h-9 flex items-center justify-center transition-all ${isScanning ? 'text-medical-600 animate-spin' : 'text-gray-500 hover:text-medical-600'}`} title="Scan Medicine"><i className="fas fa-camera"></i></button>
-                                <button type="button" onClick={() => setShowTranslate(!showTranslate)} className={`w-9 h-9 flex items-center justify-center transition-all ${selectedLanguage !== 'English' || showTranslate ? 'text-medical-600' : 'text-gray-500 hover:text-medical-600'}`} title="Translate"><i className="fas fa-language text-xl"></i></button>
-                                <button type="button" onClick={startLiveSession} className="w-9 h-9 flex items-center justify-center text-medical-600 hover:scale-110 transition-transform" title="Live Talk"><i className="fas fa-microphone text-lg"></i></button>
+                            <div className="flex items-center bg-white rounded-full shadow-inner border border-gray-100 p-0.5">
+                                <button type="button" onClick={() => fileInputRef.current?.click()} className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-medical-600 transition-all hover:scale-110 active:scale-95" title="Upload Image"><i className="fas fa-plus"></i></button>
+                                <button type="button" onClick={() => scanInputRef.current?.click()} className={`w-9 h-9 flex items-center justify-center transition-all hover:scale-110 active:scale-95 ${isScanning ? 'text-medical-600 animate-spin' : 'text-gray-400 hover:text-medical-600'}`} title="Scan Medicine"><i className="fas fa-camera"></i></button>
+                                <button type="button" onClick={() => setShowTranslate(!showTranslate)} className={`w-9 h-9 flex items-center justify-center transition-all hover:scale-110 active:scale-95 ${selectedLanguage !== 'English' || showTranslate ? 'text-medical-600' : 'text-gray-400 hover:text-medical-600'}`} title="Translate"><i className="fas fa-language text-xl"></i></button>
+                                <button type="button" onClick={startLiveSession} className="w-9 h-9 flex items-center justify-center text-medical-600 hover:scale-110 active:scale-95 transition-all" title="Live Talk"><i className="fas fa-microphone text-lg"></i></button>
                             </div>
                             
-                            <input 
-                                type="text" 
-                                value={inputValue} 
-                                onChange={(e) => setInputValue(e.target.value)} 
-                                placeholder={isLive ? "Talking..." : `Type in ${selectedLanguage}...`} 
-                                className="flex-1 bg-white border-none rounded-full px-4 py-2.5 text-sm focus:ring-2 focus:ring-medical-500 shadow-inner" 
-                                disabled={isLive} 
-                            />
+                            <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder={isLive ? "Talking..." : `Type in ${selectedLanguage}...`} className="flex-1 bg-white border-none rounded-full px-4 py-2.5 text-sm focus:ring-2 focus:ring-medical-500 shadow-inner min-w-0" disabled={isLive} />
                             
-                            <button 
-                                type="submit" 
-                                disabled={(!inputValue.trim() && !selectedImage) || isLive || isLoading} 
-                                className="w-10 h-10 rounded-full bg-medical-600 text-white flex items-center justify-center shadow-lg hover:bg-medical-700 disabled:opacity-50 transition-all active:scale-90"
-                            >
+                            <button type="submit" disabled={(!inputValue.trim() && !selectedImage) || isLive || isLoading} className="w-10 h-10 rounded-full bg-medical-600 text-white flex items-center justify-center shadow-lg hover:bg-medical-700 disabled:opacity-50 transition-all active:scale-90 flex-shrink-0 transform">
                                 {isLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
                             </button>
                         </form>
