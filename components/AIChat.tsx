@@ -67,6 +67,7 @@ const QUICK_SUGGESTIONS = [
 
 const LANGUAGES = [
     { code: 'English', name: 'English', flag: '🇺🇸' },
+    { code: 'Hinglish', name: 'Hinglish (Hindi + English)', flag: '🇮🇳' },
     { code: 'Hindi', name: 'हिन्दी (Hindi)', flag: '🇮🇳' },
     { code: 'Bengali', name: 'বাংলা (Bengali)', flag: '🇮🇳' },
     { code: 'Urdu', name: 'اردو (Urdu)', flag: '🇵🇰' },
@@ -117,7 +118,7 @@ const LANGUAGES = [
     { code: 'Latvian', name: 'Latviešu (Latvian)', flag: '🇱🇻' },
     { code: 'Lithuanian', name: 'Lietuvių (Lithuanian)', flag: '🇱🇹' },
     { code: 'Malay', name: 'Bahasa Melayu (Malay)', flag: '🇲🇾' },
-    { code: 'Mongolian', name: 'Монгол (Mongolian)', flag: '🇲🇳' },
+    { code: 'Mongolian', name: 'Мონгол (Mongolian)', flag: '🇲🇳' },
     { code: 'Nepali', name: 'नेपाली (Nepali)', flag: '🇳🇵' },
     { code: 'Norwegian', name: 'Norsk (Norwegian)', flag: '🇳🇴' },
     { code: 'Pashto', name: 'ਪښتو (Pashto)', flag: '🇦🇫' },
@@ -135,7 +136,14 @@ const LANGUAGES = [
     { code: 'Ukrainian', name: 'Українська (Ukrainian)', flag: '🇺🇦' },
     { code: 'Vietnamese', name: 'Tiếng Việt (Vietnamese)', flag: '🇻🇳' },
     { code: 'Welsh', name: 'Cymraeg (Welsh)', flag: '🏴󠁧󠁢󠁷󠁬󠁿' },
-].sort((a, b) => a.name.localeCompare(b.name));
+].sort((a, b) => {
+    // Keep Hinglish at the top after English
+    if (a.code === 'English') return -1;
+    if (b.code === 'English') return 1;
+    if (a.code === 'Hinglish') return -1;
+    if (b.code === 'Hinglish') return 1;
+    return a.name.localeCompare(b.name);
+});
 
 const WELCOME_MSG = "Hello! 👋 I'm your **AI Pharmacist**.\n\nAsk me about:\n💊 Medicine uses\n🤒 Common symptoms\n🌿 Home remedies\n🔍 Find specific medicines\n\n**Note:** I am an AI, not a doctor. Please consult a professional for serious advice.";
 
@@ -194,6 +202,51 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
         localStorage.setItem('chat_history', JSON.stringify(messages));
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    // Handle 'ask-ai' custom event
+    useEffect(() => {
+        const handleAskAI = async (e: any) => {
+            const { productName, description, customQuery } = e.detail;
+            setIsOpen(true);
+            setHasUnread(false);
+            
+            let query = customQuery;
+            if (!query && productName) {
+                query = `Tell me more about ${productName}. ${description || ''}`;
+            }
+
+            if (query) {
+                const userMsg: ChatMessage = { 
+                    id: Date.now().toString(), 
+                    text: query, 
+                    isUser: true, 
+                    timestamp: Date.now() 
+                };
+                
+                setMessages(prev => [...prev, userMsg]);
+                setIsLoading(true);
+                
+                try {
+                    const aiResponse = await getGeminiResponse(query, undefined, selectedLanguage);
+                    setMessages(prev => [...prev, { 
+                        id: (Date.now() + 1).toString(), 
+                        text: aiResponse.text, 
+                        isUser: false, 
+                        timestamp: Date.now(), 
+                        products: aiResponse.products, 
+                        groundingSources: aiResponse.groundingSources 
+                    }]);
+                } catch (error) {
+                    console.error("AI Error:", error);
+                } finally {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        window.addEventListener('ask-ai' as any, handleAskAI);
+        return () => window.removeEventListener('ask-ai' as any, handleAskAI);
+    }, [selectedLanguage]);
 
     // Cleanup
     useEffect(() => {
@@ -460,7 +513,7 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                     </div>
 
                     {/* Chat Area */}
-                    <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 bg-[#ECE5DD] relative" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundBlendMode: 'soft-light' }}>
+                    <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 bg-[#ECE5DD] relative" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundBlendMode: 'soft-light' }}>
                         {isLive && (
                             <div className="absolute inset-0 bg-medical-900/90 backdrop-blur-md z-[60] flex flex-col items-center justify-center text-white p-8 text-center animate-fade-in">
                                 <i className="fas fa-microphone text-4xl text-medical-200 mb-6 animate-pulse"></i>
@@ -481,14 +534,15 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                             </span>
                                         </div>
                                     )}
-                                    <div className={`flex w-full mb-2 items-end gap-2 ${msg.isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                                    <div className={`flex w-full items-start gap-2 ${msg.isUser ? 'flex-row-reverse' : 'flex-row'}`}>
                                         {/* Logo / Avatar */}
                                         <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm border shadow-sm ${msg.isUser ? 'bg-gray-100 border-gray-200 text-black' : 'bg-medical-100 border-medical-200 text-medical-600'}`}>
                                             <i className={`fas ${msg.isUser ? 'fa-user' : 'fa-user-md'}`}></i>
                                         </div>
 
+                                        {/* Standardized Bubble Width to 75% ensures text reply remains equal size and doesn't hit logos */}
                                         <div className={`flex flex-col max-w-[75%] ${msg.isUser ? 'items-end' : 'items-start'}`}>
-                                            <div className={`relative px-3 pt-2 pb-1.5 text-sm shadow-sm ${msg.isUser ? 'bg-[#d9fdd3] rounded-lg rounded-tr-none' : 'bg-white rounded-lg rounded-tl-none'}`}>
+                                            <div className={`relative px-3 pt-2 pb-1.5 text-sm shadow-sm w-fit ${msg.isUser ? 'bg-[#d9fdd3] rounded-lg rounded-tr-none' : 'bg-white rounded-lg rounded-tl-none'}`}>
                                                 {msg.image && <img src={msg.image} className="mb-2 rounded max-w-full border border-gray-100" />}
                                                 <div className="inline leading-[1.4] whitespace-pre-wrap">
                                                     {formatMessageText(msg.text)}
@@ -498,6 +552,36 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                                     </span>
                                                 </div>
                                             </div>
+
+                                            {/* AI Suggested Products rendering */}
+                                            {!msg.isUser && msg.products && msg.products.length > 0 && (
+                                                <div className="mt-2 flex flex-col gap-2 w-full animate-fade-in">
+                                                    {msg.products.map((p) => (
+                                                        <div key={p.id} className="bg-white rounded-xl shadow-sm border border-medical-100 overflow-hidden flex items-center p-2 gap-3 hover:border-medical-300 transition-colors cursor-pointer group" onClick={() => onViewProduct?.(p)}>
+                                                            <div className="w-12 h-12 flex-shrink-0">
+                                                                <ProductCardImage src={p.image} alt={p.name} className="rounded-lg" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <h4 className="text-xs font-bold text-gray-800 truncate group-hover:text-medical-600">{p.name}</h4>
+                                                                <p className="text-[10px] text-gray-500 truncate">{p.category || 'General Health'}</p>
+                                                            </div>
+                                                            <button className="text-[10px] font-bold text-medical-600 px-3 py-1 bg-medical-50 rounded-full hover:bg-medical-100 transition-colors">View</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* Grounding Sources rendering */}
+                                            {!msg.isUser && msg.groundingSources && msg.groundingSources.length > 0 && (
+                                                <div className="mt-2 flex flex-wrap gap-2 animate-fade-in">
+                                                    {msg.groundingSources.map((source, sIdx) => (
+                                                        <a key={sIdx} href={source.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-full border border-blue-100 hover:bg-blue-100 transition-colors">
+                                                            <i className="fas fa-external-link-alt"></i> {source.title}
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            )}
+
                                             {!msg.isUser && (
                                                 <div className="flex items-center gap-3 mt-1 px-1">
                                                     <button onClick={() => playAudio(msg.id, msg.text)} className={`text-[10px] flex items-center gap-1.5 transition-colors ${playingMessageId === msg.id ? 'text-medical-600 font-bold' : 'text-gray-500 hover:text-medical-600'}`}>
@@ -524,7 +608,7 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
 
                     {/* Footer */}
                     <div className="p-3 bg-[#f0f2f5] border-t border-gray-200 relative">
-                        {/* Quick Suggestions Box - NOW ALWAYS VISIBLE BY DEFAULT */}
+                        {/* Quick Suggestions Box */}
                         {showSuggestions && (
                             <div className="mb-4 flex flex-col gap-2 animate-fade-in px-1">
                                 <div className="flex items-center justify-between">

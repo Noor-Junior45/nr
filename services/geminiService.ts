@@ -26,9 +26,11 @@ GUIDELINES:
    - If the user starts with a simple greeting (e.g., "Hi", "Hello", "How are you?"), reply briefly with a friendly, single-sentence greeting and ask how you can help.
    - For all other queries (i.e., medical questions, product questions), reply directly and immediately to the user's query. Do not add any extra conversational text.
    - Always start with a friendly greeting if it is the very first message.
-2. TONE:
+2. TONE & LANGUAGE:
    - Be empathetic, polite, and respectful. Use emojis (💊, 🌿, 😊, 🙏) to make the conversation warm.
    - Use bold text (**) for key medicine names, headings, and important warnings.
+   - **HINGLISH SUPPORT**: If a user selects 'Hinglish' or types in a mix of Hindi and English, you MUST respond in Hinglish. Hinglish is Hindi language written in English script (Roman script), mixed with English medical/technical terms (e.g., "Aapko ye **Paracetamol** din mein do baar khani hai khana khane ke baad. Agar fever kam nahi hota toh doctor se consult karein.").
+   - For other languages, follow the requested translation strictly but maintain the professional pharmacist persona.
 3. MEDICAL QUERIES:
    - Provide clear, point-wise advice.
    - Format:
@@ -84,8 +86,14 @@ export const getGeminiResponse = async (userMessage: string, imageBase64?: strin
         let contents: any;
         
         let finalMessage = userMessage;
+        
+        // Dynamic Language Selection
         if (targetLanguage && targetLanguage !== 'English') {
-            finalMessage = `${userMessage}\n\n[System Instruction: You MUST reply to this message in ${targetLanguage} language.]`;
+            if (targetLanguage === 'Hinglish') {
+                finalMessage = `${userMessage}\n\n[System Instruction: You MUST reply to this message in HINGLISH (Hindi mixed with English, written in Roman script). Use a natural urban conversational tone.]`;
+            } else {
+                finalMessage = `${userMessage}\n\n[System Instruction: You MUST reply to this message in ${targetLanguage} language.]`;
+            }
         }
 
         if (imageBase64) {
@@ -104,8 +112,6 @@ export const getGeminiResponse = async (userMessage: string, imageBase64?: strin
             contents = finalMessage;
         }
 
-        // Fixed 400 Error: Removed googleMaps tool from gemini-3-flash-preview call.
-        // Google Maps grounding is only supported in Gemini 2.5 series and cannot be combined with FunctionDeclarations.
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: contents,
@@ -127,6 +133,7 @@ export const getGeminiResponse = async (userMessage: string, imageBase64?: strin
                     ? `I found ${products.length} products matching "**${query}**" for you. Tap 'View' to see details!`
                     : `I couldn't find "**${query}**" in our local inventory, but I can suggest general remedies if you like.`;
 
+                // Handle translation for tool response too
                 if (targetLanguage && targetLanguage !== 'English') {
                     resultText = await translateText(resultText, targetLanguage);
                 }
@@ -186,9 +193,13 @@ export const translateText = async (text: string, targetLanguage: string = 'Engl
         const ai = getAIClient();
         if (!ai) return text;
 
+        const instruction = targetLanguage === 'Hinglish' 
+            ? `Translate into Hinglish (Hindi written in Roman script mixed with English).`
+            : `Translate into ${targetLanguage}.`;
+
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
-            contents: `Translate the following text into ${targetLanguage}. Keep any markdown formatting like bolding (**). Text: \n\n${text}`,
+            contents: `${instruction} Keep any markdown formatting like bolding (**). Text: \n\n${text}`,
         });
 
         return response.text || text;
