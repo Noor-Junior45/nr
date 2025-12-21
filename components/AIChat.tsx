@@ -144,7 +144,7 @@ const LANGUAGES = [
     return a.name.localeCompare(b.name);
 });
 
-const WELCOME_MSG = "Hello! 👋 I'm your AI Pharmacist.\n\nAsk me about:\n💊 Medicine uses\n🤒 Common symptoms\n🌿 Home remedies\n🔍 Find specific medicines\n\nNote: I am an AI, not a doctor. Please consult a professional for serious advice.";
+const WELCOME_MSG = "Hello! 👋 I'm your **AI Pharmacist**.\n\nAsk me about:\n💊 Medicine uses\n🤒 Common symptoms\n🌿 Home remedies\n🔍 Find specific medicines\n\n**Note:** I am an AI, not a doctor. Please consult a professional for serious advice.";
 
 const SYSTEM_INSTRUCTION = `You are a warm, caring, and friendly AI Pharmacist assistant for 'New Lucky Pharma', located in Hanwara, Jharkhand. Your goal is to help users with their health queries in a supportive and reassuring manner. 
 Keep your responses concise and focused on healthcare. End medical suggestions with "Please consult a doctor for serious advice. Stay safe! 💚"`;
@@ -183,9 +183,15 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
     const [isAudioLoading, setIsAudioLoading] = useState(false);
     const [isLive, setIsLive] = useState(false);
     const [liveStatusText, setLiveStatusText] = useState("Connecting...");
-    const [currentTranscription, setCurrentTranscription] = useState("");
+    const [liveInTranscription, setLiveInTranscription] = useState("");
+    const [liveOutTranscription, setLiveOutTranscription] = useState("");
+    const [isAiSpeaking, setIsAiSpeaking] = useState(false);
 
-    // Refs
+    // Refs for non-react accumulation to avoid stale closures
+    const liveInTextRef = useRef("");
+    const liveOutTextRef = useRef("");
+
+    // Refs for hardware/API
     const audioContextRef = useRef<AudioContext | null>(null);
     const sourceRef = useRef<AudioBufferSourceNode | null>(null);
     const liveSessionRef = useRef<any>(null);
@@ -222,18 +228,10 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
     // Handle Mobile Back Button (Gesture Navigation)
     useEffect(() => {
         if (isOpen) {
-            // Push a new state when chat opens
             window.history.pushState({ chatOpen: true }, '', window.location.href);
-            
-            const handlePopState = (e: PopStateEvent) => {
-                // If user hits back, close the chat
-                setIsOpen(false);
-            };
-            
+            const handlePopState = () => setIsOpen(false);
             window.addEventListener('popstate', handlePopState);
-            return () => {
-                window.removeEventListener('popstate', handlePopState);
-            };
+            return () => window.removeEventListener('popstate', handlePopState);
         }
     }, [isOpen]);
 
@@ -263,7 +261,6 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                 try {
                     const aiResponse = await getGeminiResponse(query, undefined, selectedLanguage);
                     setMessages(prev => {
-                        // If user closed chat while AI was generating, show red dot
                         if (!isOpenRef.current) setHasUnread(true);
                         return [...prev, { 
                             id: (Date.now() + 1).toString(), 
@@ -296,7 +293,6 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
 
     const toggleChat = () => {
         if (isOpen) {
-            // If open, call back to trigger popstate and close gracefully
             window.history.back();
         } else {
             setIsOpen(true);
@@ -355,8 +351,11 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
     const startLiveSession = async () => {
         if (isLive) return;
         setIsLive(true);
-        setLiveStatusText("Initializing microphone...");
-        setCurrentTranscription("");
+        setLiveStatusText("Initializing...");
+        setLiveInTranscription("");
+        setLiveOutTranscription("");
+        liveInTextRef.current = "";
+        liveOutTextRef.current = "";
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -365,9 +364,6 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
             const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 16000});
             const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
             liveAudioContextRef.current = outputCtx;
-
-            let liveInTranscription = "";
-            let liveOutTranscription = "";
 
             const sessionPromise = ai.live.connect({
                 model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -387,28 +383,44 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                         (window as any)._liveStream = stream;
                     },
                     onmessage: async (message: LiveServerMessage) => {
+                        // Handle Input Transcription
                         if (message.serverContent?.inputTranscription) {
-                            liveInTranscription += message.serverContent.inputTranscription.text;
-                            setCurrentTranscription("You: " + liveInTranscription);
+                            const newText = message.serverContent.inputTranscription.text;
+                            liveInTextRef.current += newText;
+                            setLiveInTranscription(liveInTextRef.current);
+                            setLiveStatusText("AI is listening...");
+                            setIsAiSpeaking(false);
                         }
+                        // Handle Output Transcription
                         if (message.serverContent?.outputTranscription) {
-                            liveOutTranscription += message.serverContent.outputTranscription.text;
-                            setCurrentTranscription("AI: " + liveOutTranscription);
+                            const newText = message.serverContent.outputTranscription.text;
+                            liveOutTextRef.current += newText;
+                            setLiveOutTranscription(liveOutTextRef.current);
+                            setLiveStatusText("AI is speaking...");
+                            setIsAiSpeaking(true);
                         }
+                        // Turn complete - Move to main history
                         if (message.serverContent?.turnComplete) {
-                            if (liveInTranscription || liveOutTranscription) {
+                            if (liveInTextRef.current || liveOutTextRef.current) {
+                                const userText = liveInTextRef.current.trim();
+                                const aiText = liveOutTextRef.current.trim();
+                                
                                 setMessages(prev => {
-                                    if (!isOpenRef.current) setHasUnread(true);
-                                    return [
-                                        ...prev,
-                                        { id: Date.now().toString(), text: liveInTranscription, isUser: true, timestamp: Date.now() },
-                                        { id: (Date.now()+1).toString(), text: liveOutTranscription, isUser: false, timestamp: Date.now() }
-                                    ];
+                                    const newMsgs = [...prev];
+                                    if (userText) newMsgs.push({ id: `live-u-${Date.now()}`, text: userText, isUser: true, timestamp: Date.now() });
+                                    if (aiText) newMsgs.push({ id: `live-a-${Date.now()+1}`, text: aiText, isUser: false, timestamp: Date.now() });
+                                    return newMsgs;
                                 });
                             }
-                            liveInTranscription = "";
-                            liveOutTranscription = "";
+                            // Reset local accumulations
+                            liveInTextRef.current = "";
+                            liveOutTextRef.current = "";
+                            setLiveInTranscription("");
+                            setLiveOutTranscription("");
+                            setLiveStatusText("Listening...");
+                            setIsAiSpeaking(false);
                         }
+                        // Handle Audio Output
                         const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
                         if (base64Audio) {
                             liveNextStartTimeRef.current = Math.max(liveNextStartTimeRef.current, outputCtx.currentTime);
@@ -425,10 +437,11 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                             liveSourcesRef.current.forEach(s => { try { s.stop(); } catch(e){} });
                             liveSourcesRef.current.clear();
                             liveNextStartTimeRef.current = 0;
+                            setIsAiSpeaking(false);
                         }
                     },
-                    onerror: () => { setLiveStatusText("Connection error."); stopLiveSession(); },
-                    onclose: () => { setIsLive(false); }
+                    onerror: () => { setLiveStatusText("Connection lost."); stopLiveSession(); },
+                    onclose: () => { setIsLive(false); setIsAiSpeaking(false); }
                 },
                 config: {
                     responseModalities: [Modality.AUDIO],
@@ -456,7 +469,9 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
         liveSourcesRef.current.forEach(s => { try { s.stop(); } catch(e){} });
         liveSourcesRef.current.clear();
         setIsLive(false);
-        setCurrentTranscription("");
+        setIsAiSpeaking(false);
+        setLiveInTranscription("");
+        setLiveOutTranscription("");
     };
 
     // --- SCAN / IMAGE HELPERS ---
@@ -495,7 +510,6 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
         setIsLoading(true);
         const aiResponse = await getGeminiResponse(userText, userImage || undefined, selectedLanguage);
         setMessages(prev => {
-            // If user closed chat while AI was generating, show red dot
             if (!isOpenRef.current) setHasUnread(true);
             return [...prev, { id: (Date.now() + 1).toString(), text: aiResponse.text, isUser: false, timestamp: Date.now(), products: aiResponse.products, groundingSources: aiResponse.groundingSources }];
         });
@@ -536,14 +550,8 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                             <p className="text-[11px] font-bold text-gray-800 leading-snug">
                                 Hi! 👋 I'm your AI Pharmacist. How can I help you today? 💊
                             </p>
-                            <button 
-                                onClick={() => setShowGreeting(false)} 
-                                className="w-5 h-5 bg-gray-50 text-gray-400 hover:text-red-500 rounded-full flex items-center justify-center text-[10px] transition-colors shrink-0"
-                            >
-                                <i className="fas fa-times"></i>
-                            </button>
+                            <button onClick={() => setShowGreeting(false)} className="w-5 h-5 bg-gray-50 text-gray-400 hover:text-red-500 rounded-full flex items-center justify-center text-[10px] transition-colors shrink-0"><i className="fas fa-times"></i></button>
                         </div>
-                        {/* Cloud Tail / Tip pointing down towards the logo */}
                         <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white border-r border-b border-medical-200 rotate-45 rounded-sm"></div>
                     </div>
                 </div>
@@ -573,15 +581,51 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
 
                     {/* Chat Area */}
                     <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 bg-[#ECE5DD] relative custom-scrollbar" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundBlendMode: 'soft-light' }}>
+                        
+                        {/* REDESIGNED LIVE TALK OVERLAY */}
                         {isLive && (
-                            <div className="absolute inset-0 bg-medical-900/90 backdrop-blur-md z-[60] flex flex-col items-center justify-center text-white p-8 text-center animate-fade-in">
-                                <i className="fas fa-microphone text-4xl text-medical-200 mb-6 animate-pulse"></i>
-                                <h4 className="text-2xl font-bold mb-2">Live Session</h4>
-                                <p className="text-medical-200 mb-8 font-medium">{liveStatusText}</p>
-                                <div className="bg-white/10 rounded-2xl p-6 w-full max-w-sm mb-8 min-h-[120px] italic text-lg">{currentTranscription || "Listening..."}</div>
-                                <button onClick={stopLiveSession} className="px-10 py-4 bg-red-500 rounded-full font-bold shadow-xl flex items-center gap-3 active:scale-95 transition-all"><i className="fas fa-stop"></i> End</button>
+                            <div className="absolute inset-0 bg-medical-900/95 backdrop-blur-xl z-[60] flex flex-col items-center justify-between py-12 px-6 text-white text-center animate-fade-in overflow-hidden">
+                                {/* Top Status */}
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="bg-red-500 text-[10px] font-black px-3 py-1 rounded-full animate-pulse flex items-center gap-1.5 tracking-tighter">
+                                        <div className="w-2 h-2 bg-white rounded-full"></div> LIVE TALK
+                                    </div>
+                                    <p className="text-medical-200 text-sm font-bold tracking-wide uppercase mt-2">{liveStatusText}</p>
+                                </div>
+
+                                {/* Dynamic Aura & Mic Icon */}
+                                <div className="relative flex items-center justify-center">
+                                    {/* Waves based on state */}
+                                    <div className={`absolute w-32 h-32 bg-medical-500/30 rounded-full blur-xl transition-all duration-700 ${isAiSpeaking ? 'scale-[2.5] opacity-50' : 'scale-[1.8] animate-pulse opacity-40'}`}></div>
+                                    <div className={`absolute w-24 h-24 bg-white/20 rounded-full blur-md transition-all duration-500 ${isAiSpeaking ? 'scale-150' : 'scale-110'}`}></div>
+                                    
+                                    <div className={`relative w-24 h-24 rounded-full flex items-center justify-center text-4xl shadow-2xl border-4 border-white/20 transition-all duration-500 ${isAiSpeaking ? 'bg-medical-500 scale-110' : 'bg-medical-600 scale-100 shadow-medical-500/50'}`}>
+                                        <i className={`fas ${isAiSpeaking ? 'fa-volume-up animate-bounce' : 'fa-microphone'}`}></i>
+                                    </div>
+                                </div>
+
+                                {/* Live Transcription Box */}
+                                <div className="w-full max-w-sm flex flex-col gap-4">
+                                    <div className="bg-white/10 border border-white/10 rounded-2xl p-5 min-h-[140px] flex flex-col justify-center transition-all duration-300">
+                                        {liveOutTranscription ? (
+                                            <p className="text-lg leading-relaxed font-medium text-medical-50 animate-fade-in">{liveOutTranscription}</p>
+                                        ) : liveInTranscription ? (
+                                            <p className="text-lg leading-relaxed font-bold text-white italic animate-fade-in opacity-80">"{liveInTranscription}"</p>
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-3 opacity-30">
+                                                <i className="fas fa-ellipsis-h text-2xl animate-pulse"></i>
+                                                <p className="text-xs uppercase font-bold">Waiting for speech...</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <button onClick={stopLiveSession} className="w-full py-4 bg-white text-medical-900 rounded-2xl font-black shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all hover:bg-medical-50 uppercase tracking-widest text-sm">
+                                        <i className="fas fa-stop-circle text-lg"></i> Finish Session
+                                    </button>
+                                </div>
                             </div>
                         )}
+
                         {messages.map((msg, idx) => {
                             const showDate = idx === 0 || getDateLabel(msg.timestamp) !== getDateLabel(messages[idx-1].timestamp);
                             return (
@@ -594,12 +638,10 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                         </div>
                                     )}
                                     <div className={`flex w-full items-start gap-3 ${msg.isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                                        {/* Logo / Avatar */}
                                         <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm border shadow-sm ${msg.isUser ? 'bg-gray-100 border-gray-200 text-black' : 'bg-medical-100 border-medical-200 text-medical-600'}`}>
                                             <i className={`fas ${msg.isUser ? 'fa-user' : 'fa-user-md'}`}></i>
                                         </div>
 
-                                        {/* Bubble Container */}
                                         <div className={`flex flex-col max-w-[75%] ${msg.isUser ? 'items-end' : 'items-start'}`}>
                                             <div className={`relative px-3 pt-2 pb-1.5 text-sm shadow-sm w-fit inline-block leading-[1.4] whitespace-pre-wrap ${msg.isUser ? 'bg-[#d9fdd3] rounded-lg rounded-tr-none' : 'bg-white rounded-lg rounded-tl-none'}`}>
                                                 {msg.image && <img src={msg.image} className="mb-2 rounded max-w-full border border-gray-100 shadow-sm" />}
@@ -611,7 +653,6 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                                 </div>
                                             </div>
 
-                                            {/* Results rendering */}
                                             {!msg.isUser && (msg.products?.length || msg.groundingSources?.length) && (
                                                 <div className="mt-2 flex flex-col gap-2 w-full animate-fade-in">
                                                     {msg.products?.map((p) => (
