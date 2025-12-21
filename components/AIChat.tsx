@@ -144,7 +144,7 @@ const LANGUAGES = [
     return a.name.localeCompare(b.name);
 });
 
-const WELCOME_MSG = "Hello! 👋 I'm your **AI Pharmacist**.\n\nAsk me about:\n💊 Medicine uses\n🤒 Common symptoms\n🌿 Home remedies\n🔍 Find specific medicines\n\n**Note:** I am an AI, not a doctor. Please consult a professional for serious advice.";
+const WELCOME_MSG = "Hello! 👋 I'm your AI Pharmacist.\n\nAsk me about:\n💊 Medicine uses\n🤒 Common symptoms\n🌿 Home remedies\n🔍 Find specific medicines\n\nNote: I am an AI, not a doctor. Please consult a professional for serious advice.";
 
 const SYSTEM_INSTRUCTION = `You are a warm, caring, and friendly AI Pharmacist assistant for 'New Lucky Pharma', located in Hanwara, Jharkhand. Your goal is to help users with their health queries in a supportive and reassuring manner. 
 Keep your responses concise and focused on healthcare. End medical suggestions with "Please consult a doctor for serious advice. Stay safe! 💚"`;
@@ -219,6 +219,24 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
         }
     }, [isOpen]);
 
+    // Handle Mobile Back Button (Gesture Navigation)
+    useEffect(() => {
+        if (isOpen) {
+            // Push a new state when chat opens
+            window.history.pushState({ chatOpen: true }, '', window.location.href);
+            
+            const handlePopState = (e: PopStateEvent) => {
+                // If user hits back, close the chat
+                setIsOpen(false);
+            };
+            
+            window.addEventListener('popstate', handlePopState);
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [isOpen]);
+
     // Handle 'ask-ai' custom event
     useEffect(() => {
         const handleAskAI = async (e: any) => {
@@ -277,7 +295,12 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
     }, []);
 
     const toggleChat = () => {
-        setIsOpen(!isOpen);
+        if (isOpen) {
+            // If open, call back to trigger popstate and close gracefully
+            window.history.back();
+        } else {
+            setIsOpen(true);
+        }
     };
 
     const stopAudio = () => {
@@ -505,18 +528,23 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
 
     return (
         <>
-            {/* Greeting Popup */}
+            {/* Cloud Greeting Popup */}
             {showGreeting && !isOpen && (
-                <div className="fixed bottom-32 right-6 z-[95] animate-popup-in">
-                    <div className="bg-white border border-medical-200 p-4 rounded-2xl shadow-2xl relative max-w-[220px]">
-                        <div className="flex justify-between items-start mb-1">
-                            <p className="text-xs font-bold text-gray-800 leading-relaxed pr-6">
+                <div className="fixed bottom-36 right-6 z-[95] animate-popup-in origin-bottom-right">
+                    <div className="bg-white border border-medical-200 p-3 rounded-3xl shadow-2xl relative max-w-[200px] glass-panel ring-1 ring-medical-50">
+                        <div className="flex justify-between items-start gap-2">
+                            <p className="text-[11px] font-bold text-gray-800 leading-snug">
                                 Hi! 👋 I'm your AI Pharmacist. How can I help you today? 💊
                             </p>
-                            <button onClick={() => setShowGreeting(false)} className="w-5 h-5 bg-gray-50 text-gray-400 hover:text-red-500 rounded-full flex items-center justify-center text-[10px] transition-colors"><i className="fas fa-times"></i></button>
+                            <button 
+                                onClick={() => setShowGreeting(false)} 
+                                className="w-5 h-5 bg-gray-50 text-gray-400 hover:text-red-500 rounded-full flex items-center justify-center text-[10px] transition-colors shrink-0"
+                            >
+                                <i className="fas fa-times"></i>
+                            </button>
                         </div>
-                        {/* Tooltip Arrow */}
-                        <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white border-r border-b border-medical-200 rotate-45"></div>
+                        {/* Cloud Tail / Tip pointing down towards the logo */}
+                        <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white border-r border-b border-medical-200 rotate-45 rounded-sm"></div>
                     </div>
                 </div>
             )}
@@ -566,18 +594,17 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                                         </div>
                                     )}
                                     <div className={`flex w-full items-start gap-3 ${msg.isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                                        {/* Logo / Avatar - Flex shrink 0 prevents squashing */}
+                                        {/* Logo / Avatar */}
                                         <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm border shadow-sm ${msg.isUser ? 'bg-gray-100 border-gray-200 text-black' : 'bg-medical-100 border-medical-200 text-medical-600'}`}>
                                             <i className={`fas ${msg.isUser ? 'fa-user' : 'fa-user-md'}`}></i>
                                         </div>
 
-                                        {/* Bubble Container - Max width 75% ensures consistent layout and no overlap with logos */}
+                                        {/* Bubble Container */}
                                         <div className={`flex flex-col max-w-[75%] ${msg.isUser ? 'items-end' : 'items-start'}`}>
                                             <div className={`relative px-3 pt-2 pb-1.5 text-sm shadow-sm w-fit inline-block leading-[1.4] whitespace-pre-wrap ${msg.isUser ? 'bg-[#d9fdd3] rounded-lg rounded-tr-none' : 'bg-white rounded-lg rounded-tl-none'}`}>
                                                 {msg.image && <img src={msg.image} className="mb-2 rounded max-w-full border border-gray-100 shadow-sm" />}
                                                 <div className="inline">
                                                     {formatMessageText(msg.text)}
-                                                    {/* WhatsApp style inline timestamp spacer */}
                                                     <span className="inline-flex items-center justify-end ml-3 align-bottom text-[9px] opacity-40 leading-none h-[11px] min-w-[45px] select-none pointer-events-none">
                                                         {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                                     </span>
