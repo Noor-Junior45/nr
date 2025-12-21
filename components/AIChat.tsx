@@ -122,7 +122,7 @@ const LANGUAGES = [
     { code: 'Nepali', name: 'नेपाली (Nepali)', flag: '🇳🇵' },
     { code: 'Norwegian', name: 'Norsk (Norwegian)', flag: '🇳🇴' },
     { code: 'Pashto', name: 'ਪښتو (Pashto)', flag: '🇦🇫' },
-    { code: 'Persian', name: 'فارसी (Persian)', flag: '🇮🇷' },
+    { code: 'Persian', name: 'فارسی (Persian)', flag: '🇮🇷' },
     { code: 'Polish', name: 'Polski (Polish)', flag: '🇵🇱' },
     { code: 'Romanian', name: 'Română (Romanian)', flag: '🇷🇴' },
     { code: 'Serbian', name: 'Српски (Serbian)', flag: '🇷🇸' },
@@ -552,6 +552,7 @@ const AIChat: React.FC<AIChatProps> = ({ onViewProduct }) => {
                             </p>
                             <button onClick={() => setShowGreeting(false)} className="w-5 h-5 bg-gray-50 text-gray-400 hover:text-red-500 rounded-full flex items-center justify-center text-[10px] transition-colors shrink-0"><i className="fas fa-times"></i></button>
                         </div>
+                        {/* Improved Cloud Tail pointing at the FAB center */}
                         <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white border-r border-b border-medical-200 rotate-45 rounded-sm"></div>
                     </div>
                 </div>
