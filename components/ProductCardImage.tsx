@@ -46,6 +46,7 @@ export const ProductCardImage: React.FC<{ src: string; alt: string; className?: 
                 src={hasError ? fallbackSrc : imgSrc} 
                 alt={alt} 
                 loading="lazy"
+                decoding="async"
                 onLoad={() => setIsLoaded(true)}
                 onError={handleError}
                 className={`w-full h-full object-contain transform transition-all duration-700 ease-in-out mix-blend-multiply ${isLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-95 blur-sm'} ${hasError ? 'p-6 opacity-90' : ''}`} 

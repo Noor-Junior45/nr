@@ -24,6 +24,9 @@ const HealthTools: React.FC = () => {
     // AI Insight State
     const [activeFocus, setActiveFocus] = useState<string | null>(null);
     const [smartTip, setSmartTip] = useState<string>('');
+    const [aiBmiAdvice, setAiBmiAdvice] = useState<string | null>(null);
+    const [isAiLoading, setIsAiLoading] = useState(false);
+    const [adviceCopied, setAdviceCopied] = useState(false);
 
     // Water State
     const [waterWeight, setWaterWeight] = useState<string>('');
@@ -278,6 +281,10 @@ const HealthTools: React.FC = () => {
                 else if (calculatedBmi < 24.9) setBmiCategory('Healthy');
                 else if (calculatedBmi < 29.9) setBmiCategory('Overweight');
                 else setBmiCategory('Obese');
+                
+                // Reset AI advice when calculating new BMI
+                setAiBmiAdvice(null);
+                setAdviceCopied(false);
             }
         }
     };
@@ -308,15 +315,50 @@ const HealthTools: React.FC = () => {
         return { left: `${x}%`, top: `${y}%` };
     };
 
-    const askAIAboutHealth = () => {
+    const askAIAboutHealth = async () => {
         if (!bmi || !weight || !height) return;
+        
+        setIsAiLoading(true);
+        setAiBmiAdvice(null);
+        setAdviceCopied(false);
+
         const heightDisplay = heightUnit === 'ft' ? `${height}ft ${heightInches}in` : `${height}cm`;
         const weightDisplay = `${weight}${weightUnit}`;
-        const query = `I just calculated my BMI using your health tool. My Stats: Weight: ${weightDisplay}, Height: ${heightDisplay}, BMI: ${bmi} (${bmiCategory}). Can you provide personalized advice?`;
-        const event = new CustomEvent('ask-ai', { 
-            detail: { customQuery: query } 
+        const query = `I just used your BMI tool. Weight: ${weightDisplay}, Height: ${heightDisplay}, BMI: ${bmi} (${bmiCategory}). Give me 3 bullet points of quick, professional advice for my health category. Keep it brief and friendly.`;
+        
+        try {
+            const response = await getGeminiResponse(query);
+            if (response.text) {
+                setAiBmiAdvice(response.text);
+            }
+        } catch (error) {
+            console.error("AI Advice Error:", error);
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+    // Helper to render formatted text with bold support
+    const renderFormattedAdvice = (text: string) => {
+        const parts = text.split(/(\*\*.*?\*\*)/g);
+        return parts.map((part, index) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={index} className="text-indigo-900 font-bold">{part.slice(2, -2)}</strong>;
+            }
+            return <span key={index}>{part}</span>;
         });
-        window.dispatchEvent(event);
+    };
+
+    const copyAdvice = async () => {
+        if (!aiBmiAdvice) return;
+        const cleanText = aiBmiAdvice.replace(/\*\*/g, '');
+        try {
+            await navigator.clipboard.writeText(cleanText);
+            setAdviceCopied(true);
+            setTimeout(() => setAdviceCopied(false), 2000);
+        } catch (err) {
+            console.error("Failed to copy", err);
+        }
     };
 
     return (
@@ -339,10 +381,10 @@ const HealthTools: React.FC = () => {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-6xl mx-auto">
                     
                     {/* BMI Calculator */}
-                    <div className="p-8 rounded-[2.5rem] relative overflow-visible group hover:shadow-2xl transition-all duration-500 border border-blue-100 bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 shadow-xl shadow-blue-100/50 reveal-scale ring-1 ring-blue-50">
+                    <div className="hover-lift-smooth p-8 rounded-[2.5rem] relative overflow-visible group border border-blue-100 bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 shadow-xl shadow-blue-100/50 reveal-scale ring-1 ring-blue-50">
                         {activeFocus && smartTip && (
                             <div className="absolute -top-10 right-8 z-30 animate-popup-in">
                                 <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-bold px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 max-w-[250px] relative">
@@ -438,16 +480,55 @@ const HealthTools: React.FC = () => {
                                     <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-green-400 to-red-400 opacity-80"></div>
                                     <div className="absolute top-0 bottom-0 w-1.5 bg-white border border-gray-500 rounded-full z-10 transition-all duration-1000" style={{ left: `${getBmiPosition()}%` }}></div>
                                 </div>
-                                <button onClick={askAIAboutHealth} className="w-full bg-medical-600 text-white font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 shadow-md hover:bg-medical-700 hover:shadow-lg transition-all transform hover:-translate-y-0.5">
-                                    <i className="fas fa-robot text-lg"></i> 
-                                    <span>Get Personalized AI Health Tips</span>
-                                </button>
+                                
+                                {aiBmiAdvice ? (
+                                    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 border border-indigo-100 shadow-sm animate-popup-in relative group/advice">
+                                        <div className="absolute top-3 right-3 flex items-center gap-2">
+                                            <button 
+                                                onClick={copyAdvice}
+                                                className={`transition-colors p-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 ${adviceCopied ? 'bg-green-100 text-green-600' : 'bg-white/50 text-indigo-400 hover:text-indigo-600'}`}
+                                                title="Copy health tips"
+                                            >
+                                                <i className={`fas ${adviceCopied ? 'fa-check' : 'fa-copy'}`}></i>
+                                                {adviceCopied ? 'Copied' : 'Copy'}
+                                            </button>
+                                            <button 
+                                                onClick={() => setAiBmiAdvice(null)}
+                                                className="bg-white/50 text-gray-300 hover:text-red-500 transition-colors p-1.5 rounded-lg"
+                                            >
+                                                <i className="fas fa-times text-[10px]"></i>
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-md">
+                                                <i className="fas fa-robot text-xs"></i>
+                                            </div>
+                                            <h4 className="font-bold text-indigo-900 text-sm">AI Pharmacist Insight</h4>
+                                        </div>
+                                        <div className="text-xs text-indigo-800 leading-relaxed whitespace-pre-wrap font-medium">
+                                            {renderFormattedAdvice(aiBmiAdvice)}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button 
+                                        onClick={askAIAboutHealth} 
+                                        disabled={isAiLoading}
+                                        className="w-full bg-medical-600 text-white font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 shadow-md hover:bg-medical-700 hover:shadow-lg transition-all transform hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0"
+                                    >
+                                        {isAiLoading ? (
+                                            <i className="fas fa-spinner fa-spin text-lg"></i>
+                                        ) : (
+                                            <i className="fas fa-robot text-lg"></i> 
+                                        )}
+                                        <span>{isAiLoading ? 'Analyzing...' : 'Get Personalized AI Health Tips'}</span>
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>
 
                     {/* Hydration Tracker */}
-                    <div className="p-8 rounded-[2.5rem] relative overflow-hidden group hover:shadow-2xl transition-all duration-500 border border-cyan-100 bg-gradient-to-br from-white via-cyan-50/40 to-cyan-100/20 shadow-xl shadow-cyan-100/50 reveal-scale reveal-delay-200 ring-1 ring-cyan-50">
+                    <div className="hover-lift-smooth p-8 rounded-[2.5rem] relative overflow-hidden group border border-cyan-100 bg-gradient-to-br from-white via-cyan-50/40 to-cyan-100/20 shadow-xl shadow-cyan-100/50 reveal-scale reveal-delay-200 ring-1 ring-cyan-50">
                         <div className="flex items-center gap-5 mb-8 animate-fade-in-up">
                             <div className="w-16 h-16 rounded-3xl bg-cyan-50 shadow-inner text-cyan-500 flex items-center justify-center text-3xl border border-cyan-100 group-hover:scale-110 transition-transform duration-500 ring-2 ring-white">
                                 <i className="fas fa-tint"></i>
@@ -522,7 +603,7 @@ const HealthTools: React.FC = () => {
                     </div>
 
                     {/* Pill Reminder */}
-                    <div className="p-8 rounded-[2.5rem] relative overflow-hidden group hover:shadow-2xl transition-all duration-500 border border-purple-100 bg-gradient-to-br from-white via-purple-50/40 to-purple-100/20 shadow-xl shadow-purple-100/50 reveal reveal-delay-300 ring-1 ring-purple-50">
+                    <div className="hover-lift-smooth p-8 rounded-[2.5rem] relative overflow-hidden group border border-purple-100 bg-gradient-to-br from-white via-purple-50/40 to-purple-100/20 shadow-xl shadow-purple-100/50 reveal reveal-delay-300 ring-1 ring-purple-50">
                         <div className="flex items-center justify-between mb-8">
                             <div className="flex items-center gap-4">
                                 <div className="w-16 h-16 rounded-3xl bg-purple-50 shadow-inner text-purple-600 flex items-center justify-center text-3xl border border-purple-100 group-hover:scale-110 transition-transform duration-500 ring-2 ring-white">
@@ -616,7 +697,7 @@ const HealthTools: React.FC = () => {
                     </div>
 
                     {/* Stress Relief Breathing Tool */}
-                    <div className="relative p-8 rounded-[2.5rem] overflow-hidden border border-emerald-100 bg-white shadow-xl shadow-emerald-100/50 flex flex-col justify-between min-h-[420px] group transition-all duration-500 hover:shadow-2xl reveal reveal-delay-400">
+                    <div className="hover-lift-smooth relative p-8 rounded-[2.5rem] overflow-hidden border border-emerald-100 bg-white shadow-xl shadow-emerald-100/50 flex flex-col justify-between min-h-[420px] group reveal reveal-delay-400">
                         <div className={`absolute inset-0 transition-all duration-1000 ease-in-out ${isBreathing ? 'bg-emerald-50 opacity-100' : 'bg-gradient-to-br from-white via-emerald-50/20 to-emerald-100/10 opacity-100'}`}></div>
                         <div className="absolute inset-0 overflow-hidden pointer-events-none">
                             <div className={`absolute -top-24 -right-24 w-64 h-64 bg-emerald-200/20 rounded-full blur-3xl transition-all duration-1000 ${isBreathing ? 'scale-150 opacity-100' : 'scale-100 opacity-50'}`}></div>

@@ -1,21 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
-// About import removed - Merged into VideoPromo
+import VideoPromo from './components/VideoPromo';
 import Products from './components/Products';
-import Services from './components/Services';
-import HealthTips from './components/HealthTips';
-import HealthTools from './components/HealthTools';
-import FAQ from './components/FAQ';
-import Contact from './components/Contact';
-import Footer from './components/Footer';
-import WelcomeModal from './components/WelcomeModal';
 import AIChat from './components/AIChat';
 import BackToTop from './components/BackToTop';
+import WelcomeModal from './components/WelcomeModal';
 import WishlistModal from './components/WishlistModal';
 import Toast from './components/Toast';
 import ProductDetailModal from './components/ProductDetailModal';
-import VideoPromo from './components/VideoPromo';
+import HealthTools from './components/HealthTools';
+import Services from './components/Services';
+import HealthTips from './components/HealthTips';
+import FAQ from './components/FAQ';
+import Contact from './components/Contact';
+import Footer from './components/Footer';
 import AdSense from './components/AdSense';
 import { Product } from './types';
 import { productList } from './data/products';
@@ -26,51 +25,33 @@ const App: React.FC = () => {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; visible: boolean } | null>(null);
   
-  // State for product details opened via Wishlist or Deep Link
   const [viewedProduct, setViewedProduct] = useState<Product | null>(null);
   const [isDeepLinkOpen, setIsDeepLinkOpen] = useState(false);
 
-  // Load wishlist and custom products from local storage
   useEffect(() => {
       try {
           const savedWishlist = localStorage.getItem('lucky_pharma_wishlist');
-          if (savedWishlist) {
-              setWishlist(JSON.parse(savedWishlist));
-          }
+          if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
           
           const savedCustom = localStorage.getItem('lucky_pharma_custom_products');
-          if (savedCustom) {
-              setCustomProducts(JSON.parse(savedCustom));
-          }
+          if (savedCustom) setCustomProducts(JSON.parse(savedCustom));
       } catch (e) {
           console.error("Failed to load local storage data", e);
       }
   }, []);
 
-  // Handle Deep Linking for Static Products
   useEffect(() => {
       const params = new URLSearchParams(window.location.search);
       const productIdParam = params.get('product_id');
 
       if (productIdParam) {
           const id = Number(productIdParam);
-          // Only check static list as custom/AI products might not be consistent across devices by ID
           const foundProduct = productList.find(p => p.id === id);
 
           if (foundProduct) {
-              // HISTORY MANIPULATION for Better Navigation
-              // If user opens a link, there is no "back" to home.
-              // We inject "Home" into history before showing the product.
-              const currentUrl = window.location.href;
-              const homeUrl = window.location.pathname; // e.g. "/"
-              
-              // 1. Replace current state with Home (so bottom of stack is Home)
-              window.history.replaceState(null, '', homeUrl);
-              
-              // 2. Push the Product URL on top (so current view is Product)
-              window.history.pushState(null, '', currentUrl);
+              window.history.replaceState(null, '', window.location.pathname);
+              window.history.pushState(null, '', window.location.href);
 
-              // Delay slightly to ensure app is fully mounted and ready
               setTimeout(() => {
                   setIsDeepLinkOpen(true);
                   setViewedProduct(foundProduct);
@@ -95,12 +76,8 @@ const App: React.FC = () => {
       const productId = product.id;
       const isAlreadyInWishlist = wishlist.includes(productId);
 
-      // Show feedback immediately based on current state
-      if (!isAlreadyInWishlist) {
-          showToast("Added to Wishlist");
-      } else {
-          showToast("Removed from Wishlist");
-      }
+      if (!isAlreadyInWishlist) showToast("Added to Wishlist");
+      else showToast("Removed from Wishlist");
 
       setWishlist(prev => {
           const exists = prev.includes(productId);
@@ -112,7 +89,6 @@ const App: React.FC = () => {
           return newWishlist;
       });
 
-      // If it's a dynamic/AI product (not in static list), save it to customProducts
       const isStatic = productList.some(p => p.id === productId);
       if (!isStatic && !isAlreadyInWishlist) {
           setCustomProducts(prev => {
@@ -128,31 +104,23 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    // Reveal animation logic using Intersection Observer
-    const observerOptions = {
-      root: null,
-      rootMargin: '0px',
-      threshold: 0.1
-    };
-
-    const observer = new IntersectionObserver((entries, observer) => {
+    // Proactive Pre-rendering: Large rootMargin (1000px) ensures background loading
+    const observerOptions = { root: null, rootMargin: '0px 0px 1000px 0px', threshold: 0.01 };
+    const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('active');
-          observer.unobserve(entry.target); // Only animate once
+          observer.unobserve(entry.target);
         }
       });
     }, observerOptions);
 
-    // FIX: Include .reveal-scale elements in the observer so they become visible
     const revealElements = document.querySelectorAll('.reveal, .reveal-scale');
     revealElements.forEach(el => observer.observe(el));
 
-    // Handle Smooth Scrolling for Anchor Links
     const handleAnchorClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const link = target.closest('a[href^="#"]');
-      
       if (link) {
         e.preventDefault();
         const href = link.getAttribute('href');
@@ -160,19 +128,14 @@ const App: React.FC = () => {
           const targetElement = document.querySelector(href);
           if (targetElement) {
             targetElement.scrollIntoView({ behavior: 'smooth' });
-            
-            // Add magic focus effect
             targetElement.classList.add('magic-focus');
-            setTimeout(() => {
-              targetElement.classList.remove('magic-focus');
-            }, 1500);
+            setTimeout(() => targetElement.classList.remove('magic-focus'), 1500);
           }
         }
       }
     };
 
     document.addEventListener('click', handleAnchorClick);
-
     return () => {
       document.removeEventListener('click', handleAnchorClick);
       observer.disconnect();
@@ -187,28 +150,21 @@ const App: React.FC = () => {
       />
       <main>
         <Hero />
-        {/* About Component Removed - Content merged into VideoPromo */}
         <VideoPromo />
         <Products wishlist={wishlist} toggleWishlist={toggleWishlist} />
-        {/* Google AdSense Banner (After Products) */}
+        
         <AdSense slot="1234567890" />
-        
-        {/* New Health Tools Section (Moved above Services) */}
         <HealthTools />
-        
         <Services />
         <HealthTips />
         <FAQ />
-        
-        {/* Google AdSense Banner (Autorelaxed - Between FAQ & Contact) */}
         <AdSense slot="7013153337" format="autorelaxed" className="my-12" />
-        
         <Contact />
+        <Footer />
       </main>
-      <Footer />
+      
       <WelcomeModal />
       <BackToTop />
-      {/* Updated AIChat with Handler to View Product */}
       <AIChat onViewProduct={(product) => setViewedProduct(product)} />
       
       <WishlistModal 
@@ -220,7 +176,6 @@ const App: React.FC = () => {
           onProductClick={(product) => setViewedProduct(product)}
       />
 
-      {/* Detail Modal triggered from Wishlist, Chat, or Deep Link */}
       {viewedProduct && (
           <ProductDetailModal 
               product={viewedProduct}
