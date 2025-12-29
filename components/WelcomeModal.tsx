@@ -89,7 +89,15 @@ const WelcomeModal: React.FC = () => {
             className={`fixed inset-0 z-[100] flex items-center justify-center px-4 backdrop-blur-sm bg-black/60 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
         >
             <div className={`bg-white rounded-2xl shadow-2xl max-w-[320px] w-full p-5 relative transition-all duration-300 ${isVisible ? 'scale-100 animate-popup-in' : 'scale-95 opacity-0'}`}>
-                {/* Compact Content */}
+                
+                {/* Close Button */}
+                <button 
+                    onClick={handleClose}
+                    className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200 z-10"
+                    aria-label="Close"
+                >
+                    <i className="fas fa-times"></i>
+                </button>
 
                 <div className="text-center">
                     <div className="w-12 h-12 bg-medical-100 rounded-full flex items-center justify-center mx-auto mb-3 text-medical-600 animate-bounce">
