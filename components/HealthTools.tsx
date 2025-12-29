@@ -53,22 +53,22 @@ const HealthTools: React.FC = () => {
 
     // Breathing Tool State
     const [isBreathing, setIsBreathing] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
     const [breathText, setBreathText] = useState("Ready");
-    const [breathScale, setBreathScale] = useState(1); // 1 = normal
+    const [breathScale, setBreathScale] = useState(1); 
     const [breathPhase, setBreathPhase] = useState<'inhale' | 'hold' | 'exhale' | 'ready'>('ready');
     const [breathingSeconds, setBreathingSeconds] = useState(0);
+    const audioContextRef = useRef<AudioContext | null>(null);
 
     // Load Reminders & Request Permission
     useEffect(() => {
         const saved = localStorage.getItem('lucky_pharma_reminders');
         if (saved) setReminders(JSON.parse(saved));
 
-        // Request notification permission
         if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
             Notification.requestPermission();
         }
 
-        // Check for reminders every minute
         const interval = setInterval(checkReminders, 60000);
         return () => clearInterval(interval);
     }, []);
@@ -103,6 +103,46 @@ const HealthTools: React.FC = () => {
         setSmartTip(tip);
     }, [activeFocus, weight, height, weightUnit]);
 
+    // Audio Cue Functions
+    const playChime = () => {
+        if (isMuted) return;
+        try {
+            if (!audioContextRef.current) {
+                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+            }
+            const ctx = audioContextRef.current;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime); // High soft tone
+            osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.5);
+
+            gain.gain.setValueAtTime(0, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start();
+            osc.stop(ctx.currentTime + 0.5);
+        } catch (e) {
+            console.error("Audio chime failed", e);
+        }
+    };
+
+    const speakPhase = (text: string) => {
+        if (isMuted) return;
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // Stop current speech
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9; // Slightly slower for calm
+            utterance.pitch = 1.1; 
+            utterance.volume = 0.5;
+            window.speechSynthesis.speak(utterance);
+        }
+    };
 
     // Breathing Logic Effect
     useEffect(() => {
@@ -111,10 +151,10 @@ const HealthTools: React.FC = () => {
             setBreathScale(1);
             setBreathPhase('ready');
             setBreathingSeconds(0);
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
             return;
         }
 
-        // Timer effect
         const timerInterval = setInterval(() => {
             setBreathingSeconds(prev => prev + 1);
         }, 1000);
@@ -122,19 +162,25 @@ const HealthTools: React.FC = () => {
         let step = 0;
         const cycle = () => {
             const mode = step % 3;
+            let currentText = "";
+            
             if (mode === 0) {
-                setBreathText("Inhale");
+                currentText = "Inhale";
                 setBreathScale(1.5);
                 setBreathPhase('inhale');
             } else if (mode === 1) {
-                setBreathText("Hold");
+                currentText = "Hold";
                 setBreathScale(1.5);
                 setBreathPhase('hold');
             } else {
-                setBreathText("Exhale");
+                currentText = "Exhale";
                 setBreathScale(1);
                 setBreathPhase('exhale');
             }
+            
+            setBreathText(currentText);
+            playChime();
+            speakPhase(currentText);
             step++;
         };
 
@@ -145,7 +191,7 @@ const HealthTools: React.FC = () => {
             clearInterval(timerInterval);
             clearInterval(cycleInterval);
         };
-    }, [isBreathing]);
+    }, [isBreathing, isMuted]);
 
     const formatTimer = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -153,7 +199,7 @@ const HealthTools: React.FC = () => {
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    // Sync Analog State to medTime string when in Analog mode
+    // Sync Analog State
     useEffect(() => {
         if (timeMode === 'analog') {
             let h = analogHour;
@@ -164,7 +210,7 @@ const HealthTools: React.FC = () => {
         }
     }, [analogHour, analogMinute, analogAmPm, timeMode]);
 
-    // Initialize Analog state when switching to Analog mode
+    // Initialize Analog state
     useEffect(() => {
         if (timeMode === 'analog' && medTime) {
             const [hStr, mStr] = medTime.split(':');
@@ -223,7 +269,6 @@ const HealthTools: React.FC = () => {
         localStorage.setItem('lucky_pharma_reminders', JSON.stringify(updated));
     };
 
-    // Camera Scan Functions
     const triggerCamera = () => {
         fileInputRef.current?.click();
     };
@@ -282,7 +327,6 @@ const HealthTools: React.FC = () => {
                 else if (calculatedBmi < 29.9) setBmiCategory('Overweight');
                 else setBmiCategory('Obese');
                 
-                // Reset AI advice when calculating new BMI
                 setAiBmiAdvice(null);
                 setAdviceCopied(false);
             }
@@ -338,7 +382,6 @@ const HealthTools: React.FC = () => {
         }
     };
 
-    // Helper to render formatted text with bold support
     const renderFormattedAdvice = (text: string) => {
         const parts = text.split(/(\*\*.*?\*\*)/g);
         return parts.map((part, index) => {
@@ -558,23 +601,17 @@ const HealthTools: React.FC = () => {
                                 <div className={`absolute bottom-0 left-0 w-full bg-gradient-to-t from-cyan-500 to-cyan-300 transition-all duration-[1500ms] ease-out z-0 flex items-start justify-center overflow-hidden ${showWaterAnim ? 'h-full' : 'h-0'}`}>
                                     <div className="absolute -top-10 -left-[50%] w-[200%] h-20 bg-white/20 rounded-[40%] animate-wave-flow"></div>
                                     
-                                    {/* Aquarium Layer - Fixed Animations */}
                                     {showWaterAnim && (
                                         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-10">
-                                            {/* Fish 1 */}
                                             <div className="absolute top-[20%] text-white/50 text-2xl animate-swim" style={{ animationDuration: '10s' }}>
                                                 <i className="fas fa-fish"></i>
                                             </div>
-                                            {/* Fish 2 */}
                                             <div className="absolute top-[50%] text-white/30 text-sm animate-swim" style={{ animationDuration: '15s', animationDelay: '-4s' }}>
                                                 <i className="fas fa-fish"></i>
                                             </div>
-                                            {/* Fish 3 */}
                                             <div className="absolute top-[75%] text-white/40 text-lg animate-swim" style={{ animationDuration: '12s', animationDelay: '-7s' }}>
                                                 <i className="fas fa-fish"></i>
                                             </div>
-                                            
-                                            {/* Bubbles */}
                                             {[...Array(10)].map((_, i) => (
                                                 <div 
                                                     key={i}
@@ -632,7 +669,6 @@ const HealthTools: React.FC = () => {
                                             placeholder="Ex: Paracetamol"
                                         />
                                     </div>
-                                    {/* Dedicated Camera Scan Button */}
                                     <button 
                                         type="button"
                                         onClick={triggerCamera}
@@ -711,12 +747,21 @@ const HealthTools: React.FC = () => {
                                     <p className="text-xs text-emerald-600 font-bold uppercase tracking-wider">Breathing Exercise</p>
                                 </div>
                             </div>
-                            {isBreathing && (
-                                <div className="bg-white/80 backdrop-blur-sm border border-emerald-200 px-4 py-2 rounded-2xl shadow-sm animate-fade-in flex flex-col items-center">
-                                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest leading-none mb-1">Time</span>
-                                    <span className="text-lg font-mono font-bold text-gray-800 leading-none">{formatTimer(breathingSeconds)}</span>
-                                </div>
-                            )}
+                            <div className="flex flex-col items-end gap-2">
+                                <button 
+                                    onClick={() => setIsMuted(!isMuted)} 
+                                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm border ${isMuted ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-emerald-100 text-emerald-600 border-emerald-200 animate-pulse'}`}
+                                    title={isMuted ? "Unmute guidance" : "Mute guidance"}
+                                >
+                                    <i className={`fas ${isMuted ? 'fa-volume-mute' : 'fa-volume-up'}`}></i>
+                                </button>
+                                {isBreathing && (
+                                    <div className="bg-white/80 backdrop-blur-sm border border-emerald-200 px-4 py-2 rounded-2xl shadow-sm animate-fade-in flex flex-col items-center">
+                                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest leading-none mb-1">Time</span>
+                                        <span className="text-lg font-mono font-bold text-gray-800 leading-none">{formatTimer(breathingSeconds)}</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <div className="relative z-10 flex-1 flex flex-col items-center justify-center">
                             <div className="relative w-64 h-64 flex items-center justify-center">
