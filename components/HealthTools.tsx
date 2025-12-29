@@ -73,36 +73,6 @@ const HealthTools: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // Smart Tip Logic
-    useEffect(() => {
-        if (!activeFocus) {
-            setSmartTip('');
-            return;
-        }
-
-        let tip = "";
-        const w = parseFloat(weight);
-        const h = parseFloat(height);
-
-        if (activeFocus === 'weight') {
-            if (w > 0) {
-                if (weightUnit === 'kg' && w > 90) tip = "💡 Consistent cardio exercises like walking can help manage weight effectively.";
-                else if (weightUnit === 'kg' && w < 50) tip = "💡 Increasing protein intake is great for healthy muscle gain.";
-                else tip = "💡 Tracking your weight weekly is a good habit for health maintenance.";
-            } else {
-                 tip = "✨ Enter your weight to get personalized health insights.";
-            }
-        } else if (activeFocus === 'height') {
-            if (h > 0) {
-                 tip = "💡 Height is a key factor in calculating your Body Mass Index (BMI).";
-            } else {
-                 tip = "✨ Accurate height measurement ensures a precise BMI score.";
-            }
-        }
-        
-        setSmartTip(tip);
-    }, [activeFocus, weight, height, weightUnit]);
-
     // Audio Cue Functions
     const playChime = () => {
         if (isMuted) return;
@@ -198,6 +168,36 @@ const HealthTools: React.FC = () => {
         const secs = seconds % 60;
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
+
+    // Smart Tip Logic
+    useEffect(() => {
+        if (!activeFocus) {
+            setSmartTip('');
+            return;
+        }
+
+        let tip = "";
+        const w = parseFloat(weight);
+        const h = parseFloat(height);
+
+        if (activeFocus === 'weight') {
+            if (w > 0) {
+                if (weightUnit === 'kg' && w > 90) tip = "💡 Consistent cardio exercises like walking can help manage weight effectively.";
+                else if (weightUnit === 'kg' && w < 50) tip = "💡 Increasing protein intake is great for healthy muscle gain.";
+                else tip = "💡 Tracking your weight weekly is a good habit for health maintenance.";
+            } else {
+                 tip = "✨ Enter your weight to get personalized health insights.";
+            }
+        } else if (activeFocus === 'height') {
+            if (h > 0) {
+                 tip = "💡 Height is a key factor in calculating your Body Mass Index (BMI).";
+            } else {
+                 tip = "✨ Accurate height measurement ensures a precise BMI score.";
+            }
+        }
+        
+        setSmartTip(tip);
+    }, [activeFocus, weight, height, weightUnit]);
 
     // Sync Analog State
     useEffect(() => {
